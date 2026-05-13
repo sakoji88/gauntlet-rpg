@@ -1,26 +1,144 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Основная палитра Темнодушного Лета */
+  --color-bg: #0a0807;
+  --color-bg-secondary: #14100d;
+  --color-bg-tertiary: #1f1814;
+  --color-border: #3d2f1f;
+  --color-border-bright: #5a4530;
+  --color-gold: #d4a574;
+  --color-gold-dim: #8a6f4a;
+  --color-blood: #6b1a1a;
+  --color-blood-bright: #8b2424;
+  --color-text: #c4b5a0;
+  --color-text-bright: #e8d9c0;
+  --color-text-dim: #6b5d4a;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+  font-size: 16px;
+  line-height: 1.6;
+  min-height: 100vh;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Фоновая текстура (шум как на старом пергаменте) */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    radial-gradient(ellipse at top, rgba(139, 36, 36, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at bottom, rgba(212, 165, 116, 0.04) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Готические заголовки */
+h1, h2, h3, h4 {
+  font-family: 'Cinzel', 'Cormorant Garamond', serif;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--color-text-bright);
+  margin: 0;
+}
+
+h1 {
+  font-size: 3rem;
+  letter-spacing: 0.1em;
+}
+
+h2 { font-size: 2rem; }
+h3 { font-size: 1.5rem; }
+
+/* Декоративный разделитель */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: var(--color-gold-dim);
+  margin: 2rem 0;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--color-border-bright), transparent);
+}
+
+/* Кнопка в стиле Темнодушного Лета */
+.btn-dark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 2rem;
+  background: var(--color-bg-secondary);
+  color: var(--color-gold);
+  border: 1px solid var(--color-border-bright);
+  font-family: 'Cinzel', serif;
+  font-size: 0.95rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-dark:hover {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-bright);
+  border-color: var(--color-gold);
+  box-shadow: 0 0 20px rgba(212, 165, 116, 0.2);
+}
+
+.btn-dark:active {
+  transform: scale(0.98);
+}
+
+/* Класс для контейнеров со старинной рамкой */
+.parchment {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  position: relative;
+}
+
+.parchment::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border: 1px solid var(--color-border);
+  pointer-events: none;
+}
+
+/* Виньетка по краям экрана */
+.vignette::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.6) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Анимация мерцания (для атмосферы) */
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
+}
+
+.flicker {
+  animation: flicker 4s ease-in-out infinite;
 }

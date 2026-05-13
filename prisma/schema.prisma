@@ -1,0 +1,286 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  accounts      Account[]
+  player        Player?
+  sessions      Session[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model AllowedDiscordId {
+  id        String   @id @default(cuid())
+  discordId String   @unique
+  note      String?
+  createdAt DateTime @default(now())
+}
+
+model Player {
+  id                     String          @id @default(cuid())
+  userId                 String          @unique
+  nickname               String
+  class                  String?
+  level                  Int             @default(1)
+  exp                    Int             @default(0)
+  points                 Int             @default(0)
+  energy                 Int             @default(3)
+  strength               Int             @default(10)
+  patience               Int             @default(10)
+  luck                   Int             @default(10)
+  charisma               Int             @default(10)
+  currentRegion          String?
+  isAdmin                Boolean         @default(false)
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+  activeGameId           String?
+  declinedSpecials       String?
+  inPrison               Boolean         @default(false)
+  declinedQuestCooldowns String?
+
+  // Активные эффекты предметов (JSON Array<ActiveBuff>).
+  // Структура каждого: { effectKey, sourceItemId, activatedAt, payload? }
+  activeBuffs            String?
+
+  // Отношение NPC к игроку — JSON-объект { [regionId]: number (-100..+100) }.
+  // Изменяется через диалоги. Влияет на реплики NPC и небольшие бонусы.
+  npcAttitudes           String?
+
+  // ID реплик в диалогах, которые игрок уже сделал. JSON-массив строк.
+  // Чтобы не повторять одни и те же диалоги.
+  seenDialogues          String?
+
+  // ID сезона, в котором уже использован "prevent_drop" (Шлем Сурвайвора).
+  // null = не использован в текущем сезоне.
+  helmetUsedSeasonId     String?
+
+  // Последняя использованная активка класса (для cooldown'а раз в сутки)
+  lastClassActionAt      DateTime?
+
+  // Последняя попытка кражи (только для Урки, cooldown 24ч)
+  lastStealAt            DateTime?
+
+  // Дата последнего автосброса энергии (для логики 3 ходов/день в 00:00 UTC)
+  lastEnergyResetAt      DateTime?
+
+  // Очки статов на распределение (накапливаются при level-up: +3 за уровень)
+  unspentStatPoints      Int             @default(0)
+
+  // Личное Наказание (Punishment Pact) — что игрок обязан сделать если займёт последнее место
+  punishmentPact         String?
+
+  // Экипированная косметика (по itemId из items.ts)
+  equippedFrameId        String?
+  equippedTitleId        String?
+
+  // Дуэли — две стороны отношения
+  duelsAsChallenger      Duel[]          @relation("DuelChallenger")
+  duelsAsDefender        Duel[]          @relation("DuelDefender")
+
+  games                  Game[]
+  inventory              InventoryItem[]
+  user                   User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quests                 Quest[]
+}
+
+model Game {
+  id                 String     @id @default(cuid())
+  playerId           String
+  title              String
+  link               String?
+  region             String
+  status             GameStatus @default(ACTIVE)
+  rating             Int?
+  hours              Float?
+  description        String?
+  pointsEarned       Int        @default(0)
+  rolledAt           DateTime   @default(now())
+  completedAt        DateTime?
+  conditionType      String     @default("basic")
+  conditionsSnapshot String?
+  player             Player     @relation(fields: [playerId], references: [id], onDelete: Cascade)
+}
+
+model Quest {
+  id          String      @id @default(cuid())
+  playerId    String
+  templateId  String
+  npcRegion   String
+  type        QuestType
+  title       String
+  description String
+  flavor      String
+  targetCount Int         @default(1)
+  progress    Int         @default(0)
+  params      String?
+  rewards     String
+  status      QuestStatus @default(OFFERED)
+  offeredAt   DateTime    @default(now())
+  acceptedAt  DateTime?
+  expiresAt   DateTime?
+  completedAt DateTime?
+  player      Player      @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId, status])
+  @@index([playerId, npcRegion])
+}
+
+// =====================
+// ДУЭЛИ (PvP)
+// =====================
+
+enum DuelStatus {
+  PROPOSED   // Челленджер бросил вызов, ждёт ответа от защитника
+  ACCEPTED   // Принят, оба должны сыграть согласованную игру и сдать результат
+  COMPLETED  // Оба сдали результаты, победитель определён
+  DECLINED   // Защитник отказался
+  CANCELLED  // Челленджер отозвал вызов
+  EXPIRED    // Время на ответ или сдачу истекло
+}
+
+model Duel {
+  id                String     @id @default(cuid())
+
+  challengerId      String
+  challenger        Player     @relation("DuelChallenger", fields: [challengerId], references: [id], onDelete: Cascade)
+  defenderId        String
+  defender          Player     @relation("DuelDefender", fields: [defenderId], references: [id], onDelete: Cascade)
+
+  gameTitle         String     // Согласованная игра
+  message           String?    // Сообщение от челленджера
+
+  challengerHours   Float?     // Часов прохождения (сдаёт челленджер)
+  challengerRating  Int?       // Опционально
+  defenderHours     Float?
+  defenderRating    Int?
+
+  status            DuelStatus @default(PROPOSED)
+  winnerId          String?    // ID победителя
+  pointsTransferred Int        @default(0)
+
+  createdAt         DateTime   @default(now())
+  acceptedAt        DateTime?
+  completedAt       DateTime?
+  expiresAt         DateTime?
+
+  @@index([challengerId, status])
+  @@index([defenderId, status])
+}
+
+model Item {
+  id             String          @id
+  name           String
+  description    String
+  category       ItemCategory
+  rarity         ItemRarity
+  iconKey        String
+  effectKey      String?
+  charges        Int             @default(1)
+  rollWeight     Int             @default(10)
+  isTrap         Boolean         @default(false)
+  inventoryItems InventoryItem[]
+}
+
+model InventoryItem {
+  id         String    @id @default(cuid())
+  playerId   String
+  itemId     String
+  charges    Int       @default(1)
+  obtainedAt DateTime  @default(now())
+  // Последний раз когда предмет использовался — для предметов с кулдауном (Половник и т.п.)
+  lastUsedAt DateTime?
+  item       Item      @relation(fields: [itemId], references: [id])
+  player     Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
+}
+
+model Season {
+  id        String    @id @default(cuid())
+  number    Int       @unique
+  name      String
+  theme     String?
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+  winnerId  String?
+  createdAt DateTime  @default(now())
+}
+
+enum GameStatus {
+  ACTIVE
+  COMPLETED
+  DROPPED
+}
+
+enum QuestType {
+  GENRE
+  DURATION
+  RATING
+  CHALLENGE
+  LORE
+}
+
+enum QuestStatus {
+  OFFERED
+  ACTIVE
+  COMPLETED
+  DECLINED
+  EXPIRED
+}
+
+enum ItemCategory {
+  CONSUMABLE
+  EQUIPMENT
+  ARTIFACT
+  TRAP
+  COSMETIC
+}
+
+enum ItemRarity {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
