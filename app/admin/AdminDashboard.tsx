@@ -35,13 +35,21 @@ export default function AdminDashboard(props: any) {
         flexWrap: "wrap",
         gap: "1rem",
       }}>
-        <Link href="/profile" style={{
-          display: "inline-flex", alignItems: "center", gap: "0.5rem",
-          color: "var(--color-text-dim)", textDecoration: "none", fontSize: "0.9rem",
-        }}>
-          <ChevronLeft size={16} />
-          Профиль
-        </Link>
+        <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+          <Link href="/profile" style={{
+            display: "inline-flex", alignItems: "center", gap: "0.5rem",
+            color: "var(--color-text-dim)", textDecoration: "none", fontSize: "0.9rem",
+          }}>
+            <ChevronLeft size={16} />
+            Профиль
+          </Link>
+          <Link href="/admin/irl" style={{
+            display: "inline-flex", alignItems: "center", gap: "0.5rem",
+            color: "var(--color-gold)", textDecoration: "none", fontSize: "0.9rem",
+          }}>
+            🎯 ИРЛ-квесты
+          </Link>
+        </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
           <Shield size={24} color="var(--color-gold)" className="flicker" />
