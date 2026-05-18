@@ -176,6 +176,10 @@ export async function POST(req: Request) {
     if (hasBuff(buffs, "trap_points")) activeTrapKeys.push("rotten_shawarma");
     // Пассивная Кольцо Жадности — даёт +1 поинт за игру
     if (await hasPassiveEffect(player.id, "greed")) activeBuffKeys.push("greed_ring");
+    // Баффы-расходники «+поинты следующей игре»
+    for (const key of ["points_next_2", "points_next_3", "points_next_5"]) {
+      if (hasBuff(buffs, key)) activeBuffKeys.push(key);
+    }
 
     // +2 если это ПЕРВОЕ прохождение этой игры в текущем сезоне (кем-либо).
     // Сравниваем по title без регистра.
@@ -229,6 +233,9 @@ export async function POST(req: Request) {
     if (hasBuff(buffs, "trap_points")) {
       updatedBuffs = removeBuff(updatedBuffs, "trap_points");
     }
+    for (const key of ["points_next_2", "points_next_3", "points_next_5"]) {
+      if (hasBuff(buffs, key)) updatedBuffs = removeBuff(updatedBuffs, key);
+    }
     const buffsJson =
       updatedBuffs.length !== buffs.length
         ? serializeActiveBuffs(updatedBuffs)
@@ -251,13 +258,17 @@ export async function POST(req: Request) {
       },
     });
 
+    // Пассивка «находит Злато» — +2 Злата за игру
+    const hasGoldFind = await hasPassiveEffect(player.id, "passive_gold_find");
+    const goldGain = GOLD_PER_COMPLETION + (hasGoldFind ? 2 : 0);
+
     await prisma.player.update({
       where: { id: player.id },
       data: {
         activeGameId: null,
         points: { increment: result.total },
         exp: { increment: EXP_PER_COMPLETION },
-        gold: { increment: GOLD_PER_COMPLETION },
+        gold: { increment: goldGain },
         ...(buffsJson !== null ? { activeBuffs: buffsJson } : {}),
       },
     });
@@ -276,7 +287,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       pointsEarned: result.total,
-      goldEarned: GOLD_PER_COMPLETION,
+      goldEarned: goldGain,
       breakdown: result.breakdown,
       cappedAt25: result.cappedAt25,
       questUpdates,

@@ -80,12 +80,12 @@ export async function POST(req: Request) {
   const hasPerovDisdain = hasBuff(playerBuffs, "perov_disdain");
 
   // Загружаем все ролл-доступные предметы (rollWeight > 0).
-  // Косметика никогда не выпадает с колеса — только за квесты / условия.
+  // Что НЕ выпадает — имеет rollWeight 0 (старая косметика-награды, особые
+  // предметы магазина, Сосуд Перова). Одёжная косметика с rollWeight > 0 — выпадает.
   // Если активно Зелье Удачи — фильтруем до RARE+.
   const allItems = await prisma.item.findMany({
     where: {
       rollWeight: { gt: 0 },
-      category: { not: "COSMETIC" },
       ...(hasLuckyRoll
         ? { rarity: { in: ["RARE", "EPIC", "LEGENDARY"] } }
         : {}),

@@ -275,7 +275,32 @@ function ItemCard({ invItem, targets, isUrka }: { invItem: any; targets: any[]; 
       </p>
 
       <div style={{ marginTop: "auto", paddingTop: "0.75rem" }}>
-        {item.effectKey ? (
+        {item.category === "TRAP" ? (
+          getTrapByItemId(item.id) ? (
+            <ThrowTrapButton
+              inventoryItemId={invItem.id}
+              itemName={item.name}
+              itemDescription={item.description}
+              targets={targets}
+              isUrka={isUrka}
+              color={colors.text}
+            />
+          ) : (
+            <div style={{
+              width: "100%",
+              padding: "0.5rem",
+              color: "var(--color-text-dim)",
+              border: "1px dashed var(--color-border)",
+              fontSize: "0.7rem",
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              textAlign: "center",
+              fontStyle: "italic",
+            }}>
+              Ловушка пока не реализована
+            </div>
+          )
+        ) : item.effectKey ? (
           <UseItemButton
             inventoryItemId={invItem.id}
             isPassive={isPassive(item.effectKey)}
@@ -302,31 +327,6 @@ function ItemCard({ invItem, targets, isUrka }: { invItem: any; targets: any[]; 
           }}>
             Косметика — в коллекции
           </div>
-        ) : item.category === "TRAP" ? (
-          getTrapByItemId(item.id) ? (
-            <ThrowTrapButton
-              inventoryItemId={invItem.id}
-              itemName={item.name}
-              itemDescription={item.description}
-              targets={targets}
-              isUrka={isUrka}
-              color={colors.text}
-            />
-          ) : (
-            <div style={{
-              width: "100%",
-              padding: "0.5rem",
-              color: "var(--color-text-dim)",
-              border: "1px dashed var(--color-border)",
-              fontSize: "0.7rem",
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              textAlign: "center",
-              fontStyle: "italic",
-            }}>
-              Ловушка пока не реализована
-            </div>
-          )
         ) : (
           <div style={{
             width: "100%",

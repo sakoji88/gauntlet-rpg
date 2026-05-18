@@ -146,6 +146,19 @@ export function calculatePoints(input: CalcInput): PointsResult {
     });
   }
 
+  // 6.6) БАФФЫ «+поинты следующей игре» (расходники-баффы)
+  const pointsBuffs: Array<[string, number]> = [
+    ["points_next_2", 2],
+    ["points_next_3", 3],
+    ["points_next_5", 5],
+  ];
+  for (const [key, amount] of pointsBuffs) {
+    if (input.activeBuffs?.includes(key)) {
+      raw += amount;
+      breakdown.push({ label: `Бафф предмета: +${amount}`, value: amount, type: "bonus" });
+    }
+  }
+
   // 7) АКТИВНЫЕ ПРЕДМЕТЫ (на будущее)
   if (input.activeBuffs?.includes("greed_ring")) {
     raw += 1;

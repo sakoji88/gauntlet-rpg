@@ -53,6 +53,73 @@ export const TRAPS: TrapDef[] = [
     appliesTo: "move",
     magnitude: 2,
   },
+
+  // ===== Ловушки сезона 2 =====
+  // itemEffectKey уникален (привязка предмет→ловушка), buffKey переиспользует
+  // существующие — чтобы move/finish-роуты уже умели их обрабатывать.
+  {
+    itemEffectKey: "trap_drisevo",
+    buffKey: "trap_extra_cost",
+    itemId: "mexican_drisevo",
+    name: "Мексиканское дрисево",
+    description: "+1 ход на следующее действие жертвы",
+    appliesTo: "any_action",
+    magnitude: 1,
+  },
+  {
+    itemEffectKey: "trap_shitbag",
+    buffKey: "trap_slow",
+    itemId: "shit_bag_chakhlik",
+    name: "Сральный пакет Чахлика",
+    description: "+1 ход на следующее перемещение жертвы",
+    appliesTo: "move",
+    magnitude: 1,
+  },
+  {
+    itemEffectKey: "trap_flamethrower",
+    buffKey: "trap_strong_slow",
+    itemId: "flamethrower_dushik",
+    name: "Огнемёт душика",
+    description: "+2 хода на следующее перемещение жертвы",
+    appliesTo: "move",
+    magnitude: 2,
+  },
+  {
+    itemEffectKey: "trap_zigomet",
+    buffKey: "trap_points",
+    itemId: "zigomet_chakhlik",
+    name: "Зигомёт Чахлика",
+    description: "−2 поинта на следующей засчитанной игре жертвы",
+    appliesTo: "next_complete",
+    magnitude: 2,
+  },
+  {
+    itemEffectKey: "trap_barin",
+    buffKey: "trap_points",
+    itemId: "barin_curse",
+    name: "Проклятье барина",
+    description: "−2 поинта на следующей засчитанной игре жертвы",
+    appliesTo: "next_complete",
+    magnitude: 2,
+  },
+  {
+    itemEffectKey: "trap_perdak",
+    buffKey: "trap_strong_slow",
+    itemId: "vasilisa_perdak",
+    name: "Пердак Василисы",
+    description: "+2 хода на следующее перемещение жертвы",
+    appliesTo: "move",
+    magnitude: 2,
+  },
+  {
+    itemEffectKey: "trap_rvotnichki",
+    buffKey: "trap_extra_cost",
+    itemId: "rvotnichki",
+    name: "Рвотнички",
+    description: "+1 ход на следующее действие жертвы",
+    appliesTo: "any_action",
+    magnitude: 1,
+  },
 ];
 
 export function getTrapByEffectKey(effectKey: string): TrapDef | null {

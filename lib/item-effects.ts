@@ -23,7 +23,9 @@ import {
   serializeActiveBuffs,
   hasBuff,
   addBuff,
+  removeBuff,
 } from "./active-buffs";
+import { TRAP_BUFF_KEYS } from "./trap-effects";
 
 export type EffectClass = "INSTANT" | "BUFF" | "PASSIVE" | "WEEKLY";
 
@@ -314,14 +316,177 @@ export const EFFECTS: Record<string, EffectMeta> = {
       };
     },
   },
+
+  // ========= INSTANT: Злато (новые) =========
+  gain_gold_10: {
+    effectKey: "gain_gold_10",
+    class: "INSTANT",
+    apply: async ({ tx, player }) => {
+      await tx.player.update({
+        where: { id: player.id },
+        data: { gold: { increment: 10 } },
+      });
+      return { message: "+10 Злата звякнуло в кошель." };
+    },
+  },
+
+  gain_gold_25: {
+    effectKey: "gain_gold_25",
+    class: "INSTANT",
+    apply: async ({ tx, player }) => {
+      await tx.player.update({
+        where: { id: player.id },
+        data: { gold: { increment: 25 } },
+      });
+      return { message: "+25 Злата. Романал бы позавидовал." };
+    },
+  },
+
+  // ========= INSTANT: EXP =========
+  // Уровень пересчитается при следующем завершении игры/квеста.
+  gain_exp_25: {
+    effectKey: "gain_exp_25",
+    class: "INSTANT",
+    apply: async ({ tx, player }) => {
+      await tx.player.update({
+        where: { id: player.id },
+        data: { exp: { increment: 25 } },
+      });
+      return { message: "+25 опыта влилось в твою душу." };
+    },
+  },
+
+  gain_exp_50: {
+    effectKey: "gain_exp_50",
+    class: "INSTANT",
+    apply: async ({ tx, player }) => {
+      await tx.player.update({
+        where: { id: player.id },
+        data: { exp: { increment: 50 } },
+      });
+      return { message: "+50 опыта. Ты стал чуть менее ничтожен." };
+    },
+  },
+
+  // ========= INSTANT: +3 хода =========
+  add_energy_3: {
+    effectKey: "add_energy_3",
+    class: "INSTANT",
+    isUsable: ({ player }) =>
+      player.energy >= 3
+        ? { ok: false, reason: "У тебя уже максимум ходов" }
+        : { ok: true },
+    apply: async ({ tx, player }) => {
+      await tx.player.update({
+        where: { id: player.id },
+        data: { energy: { increment: 3 } },
+      });
+      return { message: "+3 хода. Полный заряд — гуляй." };
+    },
+  },
+
+  // ========= INSTANT: +1 случайный стат =========
+  heal_stat_1: {
+    effectKey: "heal_stat_1",
+    class: "INSTANT",
+    apply: async ({ tx, player }) => {
+      const stats: Array<keyof Pick<Player, "strength" | "patience" | "luck" | "charisma">> = [
+        "strength",
+        "patience",
+        "luck",
+        "charisma",
+      ];
+      const stat = stats[Math.floor(Math.random() * stats.length)];
+      const labels: Record<typeof stat, string> = {
+        strength: "Силе",
+        patience: "Терпению",
+        luck: "Удаче",
+        charisma: "Харизме",
+      };
+      await tx.player.update({
+        where: { id: player.id },
+        data: { [stat]: { increment: 1 } } as Record<string, unknown>,
+      });
+      return { message: `+1 к ${labels[stat]}.`, data: { stat, delta: 1 } };
+    },
+  },
+
+  // ========= INSTANT: снять все дебаффы/ловушки с себя =========
+  cleanse_debuffs: {
+    effectKey: "cleanse_debuffs",
+    class: "INSTANT",
+    isUsable: ({ player }) => {
+      const buffs = parseActiveBuffs(player.activeBuffs);
+      const bad = buffs.filter(
+        (b) => TRAP_BUFF_KEYS.includes(b.effectKey) || b.effectKey === "perov_disdain",
+      );
+      return bad.length > 0
+        ? { ok: true }
+        : { ok: false, reason: "На тебе нет ни ловушек, ни дебаффов" };
+    },
+    apply: async ({ tx, player }) => {
+      let buffs = parseActiveBuffs(player.activeBuffs);
+      const before = buffs.length;
+      for (const key of [...TRAP_BUFF_KEYS, "perov_disdain"]) {
+        buffs = removeBuff(buffs, key);
+      }
+      await tx.player.update({
+        where: { id: player.id },
+        data: { activeBuffs: serializeActiveBuffs(buffs) },
+      });
+      return {
+        message: `Очищено. Снято дебаффов: ${before - buffs.length}.`,
+      };
+    },
+  },
+
+  // ========= BUFF: +поинты следующей завершённой игре =========
+  points_next_2: makePointsBuff("points_next_2", 2),
+  points_next_3: makePointsBuff("points_next_3", 3),
+  points_next_5: makePointsBuff("points_next_5", 5),
 };
+
+// Фабрика BUFF-эффекта «+N поинтов следующей игре».
+// Бафф ловится и сжигается в finish/route.ts на complete.
+function makePointsBuff(effectKey: string, amount: number): EffectMeta {
+  return {
+    effectKey,
+    class: "BUFF",
+    isUsable: ({ player }) => {
+      const buffs = parseActiveBuffs(player.activeBuffs);
+      return hasBuff(buffs, effectKey)
+        ? { ok: false, reason: "Такой бафф уже активен" }
+        : { ok: true };
+    },
+    apply: async ({ tx, player, invItem }) => {
+      const buffs = parseActiveBuffs(player.activeBuffs);
+      const next = addBuff(buffs, {
+        effectKey,
+        sourceItemId: invItem.itemId,
+        activatedAt: new Date().toISOString(),
+      });
+      await tx.player.update({
+        where: { id: player.id },
+        data: { activeBuffs: serializeActiveBuffs(next) },
+      });
+      return {
+        message: `Готово. Следующая засчитанная игра даст +${amount} поинтов.`,
+      };
+    },
+  };
+}
 
 // ========= ПАССИВНЫЕ ЭФФЕКТЫ (не вызываются через "Использовать") =========
 // Просто проверяются при чтении инвентаря в других местах.
 // cheap_move (Сапоги) → в move/route.ts
 // greed       (Кольцо) → в points-formula.ts
 
-export const PASSIVE_EFFECT_KEYS = new Set(["cheap_move", "greed", "hide_game"]);
+export const PASSIVE_EFFECT_KEYS = new Set([
+  "cheap_move",
+  "greed",
+  "hide_game",
+  "passive_gold_find",
+]);
 
 // ========= ХЕЛПЕРЫ =========
 export function getEffectMeta(effectKey: string): EffectMeta | null {
