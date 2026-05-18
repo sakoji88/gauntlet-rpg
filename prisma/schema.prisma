@@ -68,6 +68,11 @@ model Player {
   level                  Int             @default(1)
   exp                    Int             @default(0)
   points                 Int             @default(0)
+
+  // Злато — мягкая валюта магазина Романала. Капает за прохождения,
+  // тратится в магазине. НЕ влияет на лидерборд (в отличие от points).
+  gold                   Int             @default(0)
+
   energy                 Int             @default(3)
   strength               Int             @default(10)
   patience               Int             @default(10)
@@ -260,6 +265,21 @@ enum QuestType {
   RATING
   CHALLENGE
   LORE
+  IRL
+}
+
+// Пул ИРЛ-квестов — заводится админом. Сами Quest-записи раздаются игрокам
+// из этого пула (конкретному игроку или случайному, без повторов на игрока).
+model IrlQuestTemplate {
+  id           String   @id @default(cuid())
+  title        String
+  description  String
+  flavor       String?
+  npcRegion    String   // какой NPC «выдаёт» квест (для атмосферы), напр. "tabor"
+  rewardPoints Int      @default(15)
+  rewardExp    Int      @default(30)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
 }
 
 enum QuestStatus {

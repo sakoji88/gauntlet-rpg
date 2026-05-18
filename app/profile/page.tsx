@@ -7,6 +7,8 @@ import { Flame, Shield, MapPin, BookMarked, Package, Scroll, Swords, Crown } fro
 import ActiveGamePanel from "./ActiveGamePanel";
 import ClassActionPanel from "./ClassActionPanel";
 import StealPanel from "./StealPanel";
+import StatDistributionPanel from "./StatDistributionPanel";
+import PunishmentPactPanel from "./PunishmentPactPanel";
 import { getClassActionForPlayer, classActionCooldownLeft } from "@/lib/class-actions";
 import { parseActiveBuffs, findBuff } from "@/lib/active-buffs";
 import { getTrapByBuffKey, TRAP_BUFF_KEYS } from "@/lib/trap-effects";
@@ -390,6 +392,20 @@ export default async function ProfilePage() {
           </Link>
         </div>
       )}
+
+      {/* Распределение очков статов (видно только при наличии очков) */}
+      {player.unspentStatPoints > 0 && (
+        <StatDistributionPanel
+          strength={player.strength}
+          patience={player.patience}
+          luck={player.luck}
+          charisma={player.charisma}
+          unspentStatPoints={player.unspentStatPoints}
+        />
+      )}
+
+      {/* Личное Наказание */}
+      <PunishmentPactPanel initialText={player.punishmentPact} />
 
       {/* Классовая активка */}
       {classAction && (

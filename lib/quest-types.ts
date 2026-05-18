@@ -4,7 +4,7 @@
 
 import type { RegionId } from "./regions";
 
-export type QuestType = "GENRE" | "DURATION" | "RATING" | "CHALLENGE" | "LORE";
+export type QuestType = "GENRE" | "DURATION" | "RATING" | "CHALLENGE" | "LORE" | "IRL";
 
 export type QuestStatus =
   | "OFFERED"

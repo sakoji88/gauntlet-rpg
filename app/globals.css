@@ -142,3 +142,13 @@ h3 { font-size: 1.5rem; }
 .flicker {
   animation: flicker 4s ease-in-out infinite;
 }
+
+/* Анимация вращения (спиннеры загрузки) */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}

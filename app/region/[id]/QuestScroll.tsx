@@ -15,7 +15,7 @@ import { parseQuestRewards } from "@/lib/quest-types";
 
 export interface QuestProps {
   id: string;
-  type: "GENRE" | "DURATION" | "RATING" | "CHALLENGE" | "LORE";
+  type: "GENRE" | "DURATION" | "RATING" | "CHALLENGE" | "LORE" | "IRL";
   title: string;
   description: string;
   flavor: string;
@@ -292,6 +292,7 @@ const TYPE_LABELS: Record<QuestProps["type"], string> = {
   RATING: "Рейтинг",
   CHALLENGE: "Челлендж",
   LORE: "Лорный",
+  IRL: "ИРЛ",
 };
 
 function Pill({ children, color }: { children: React.ReactNode; color: string }) {

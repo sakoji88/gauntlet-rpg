@@ -138,6 +138,35 @@ export default async function PublicPlayerPage({
         </div>
       </div>
 
+      {/* Личное Наказание (виден всем — часть давления) */}
+      {player.punishmentPact && (
+        <div style={{
+          padding: "1rem 1.25rem",
+          background: "rgba(139, 36, 36, 0.08)",
+          border: "1px solid var(--color-blood-bright)",
+          marginBottom: "1.5rem",
+        }}>
+          <div style={{
+            fontFamily: "var(--font-cinzel)",
+            color: "var(--color-blood-bright)",
+            letterSpacing: "0.1em",
+            fontSize: "0.8rem",
+            marginBottom: "0.4rem",
+            textTransform: "uppercase",
+          }}>
+            ☠ Личное Наказание
+          </div>
+          <p style={{
+            color: "var(--color-text)",
+            fontStyle: "italic",
+            margin: 0,
+            lineHeight: 1.55,
+          }}>
+            «{player.punishmentPact}»
+          </p>
+        </div>
+      )}
+
       {/* Активная игра */}
       {activeGame && (
         <div className="parchment" style={{ padding: "1.25rem", marginBottom: "1.5rem", borderColor: "var(--color-gold-dim)" }}>

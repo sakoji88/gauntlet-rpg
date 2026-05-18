@@ -377,7 +377,7 @@ async function applyQuestProgress(
   const logs: QuestUpdateLog[] = [];
 
   for (const quest of activeQuests) {
-    if (quest.type === "LORE") continue; // лорные — только вручную
+    if (quest.type === "LORE" || quest.type === "IRL") continue; // лорные и ИРЛ — только вручную
     if (!gameMatchesQuest(quest, ctx)) continue;
 
     const newProgress = quest.progress + 1;
@@ -497,6 +497,7 @@ function gameMatchesQuest(quest: Quest, ctx: GameContext): boolean {
       return true;
 
     case "LORE":
+    case "IRL":
       return false;
   }
 }
