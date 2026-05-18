@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import PageBackdrop from "@/app/components/PageBackdrop";
+import Avatar from "@/app/components/Avatar";
+import { getTitleText } from "@/lib/cosmetics";
 import { ChevronLeft, MapPin, Coins, Zap, Trophy, Gamepad2, Package } from "lucide-react";
 import { getClassById } from "@/lib/classes";
 import { getRegionById } from "@/lib/regions";
@@ -82,22 +84,29 @@ export default async function PublicPlayerPage({
       }}>
         <div style={{ display: "flex", gap: "2rem", alignItems: "center", marginBottom: "2rem", flexWrap: "wrap" }}>
           {player.user?.image && (
-            <img
+            <Avatar
               src={player.user.image}
+              size={120}
+              frameId={player.equippedFrameId}
               alt=""
-              style={{
-                width: "120px",
-                height: "120px",
-                borderRadius: "50%",
-                border: `2px solid ${player.isAdmin ? "var(--color-gold)" : "var(--color-border-bright)"}`,
-              }}
             />
           )}
           <div style={{ flex: 1, minWidth: "200px" }}>
-            <h1 style={{ fontSize: "2rem", marginBottom: "0.5rem", color: "var(--color-text-bright)" }}>
+            <h1 style={{ fontSize: "2rem", marginBottom: "0.25rem", color: "var(--color-text-bright)" }}>
               {player.nickname}
               {isMe && <span style={{ color: "var(--color-gold)", fontSize: "0.8rem", marginLeft: "0.5rem" }}>(это ты)</span>}
             </h1>
+            {getTitleText(player.equippedTitleId) && (
+              <div style={{
+                color: "var(--color-gold)",
+                fontFamily: "var(--font-cinzel)",
+                fontSize: "0.85rem",
+                letterSpacing: "0.08em",
+                marginBottom: "0.5rem",
+              }}>
+                ◈ {getTitleText(player.equippedTitleId)}
+              </div>
+            )}
             <p style={{ color: "var(--color-text-dim)", fontStyle: "italic", marginBottom: "0.5rem" }}>
               {player.isAdmin && (
                 <span style={{ color: "var(--color-gold)", marginRight: "0.5rem" }}>

@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import PageBackdrop from "@/app/components/PageBackdrop";
+import Avatar from "@/app/components/Avatar";
+import { getTitleText } from "@/lib/cosmetics";
 import { Flame, Shield, MapPin, BookMarked, Package, Scroll, Swords, Crown, Coins } from "lucide-react";
 import ActiveGamePanel from "./ActiveGamePanel";
 import ClassActionPanel from "./ClassActionPanel";
@@ -247,15 +249,11 @@ export default async function ProfilePage() {
         <div style={{ display: "flex", gap: "2rem", alignItems: "center", marginBottom: "2rem" }}>
           {user.image && (
             <div style={{ position: "relative" }}>
-              <img
+              <Avatar
                 src={user.image}
+                size={100}
+                frameId={player?.equippedFrameId}
                 alt="Аватар"
-                style={{
-                  width: "100px",
-                  height: "100px",
-                  borderRadius: "50%",
-                  border: isAdmin ? "2px solid var(--color-gold)" : "2px solid var(--color-border-bright)",
-                }}
               />
               {isAdmin && (
                 <div style={{
@@ -277,7 +275,20 @@ export default async function ProfilePage() {
             </div>
           )}
           <div>
-            <h2 style={{ marginBottom: "0.5rem" }}>{player?.nickname || user.name}</h2>
+            <h2 style={{ marginBottom: getTitleText(player?.equippedTitleId) ? "0.15rem" : "0.5rem" }}>
+              {player?.nickname || user.name}
+            </h2>
+            {getTitleText(player?.equippedTitleId) && (
+              <div style={{
+                color: "var(--color-gold)",
+                fontFamily: "var(--font-cinzel)",
+                fontSize: "0.8rem",
+                letterSpacing: "0.08em",
+                marginBottom: "0.5rem",
+              }}>
+                ◈ {getTitleText(player?.equippedTitleId)}
+              </div>
+            )}
             <p style={{ color: "var(--color-text-dim)", fontStyle: "italic" }}>
               {isAdmin && (
                 <span style={{ color: "var(--color-gold)", marginRight: "0.5rem" }}>
