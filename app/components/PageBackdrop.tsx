@@ -8,12 +8,13 @@
 export default function PageBackdrop({
   image,
   accent,
-  opacity = 0.35,
+  opacity = 0.6,
 }: {
   image: string; // имя файла, напр. "profile.jpg"
   accent?: string; // цвет лёгкого внутреннего свечения по краям
   opacity?: number; // насколько ярко видно картинку (0..1)
 }) {
+  // По умолчанию — как фоны локаций: картинка видна ярко, вуаль лёгкая.
   return (
     <>
       <div
@@ -35,8 +36,8 @@ export default function PageBackdrop({
           position: "fixed",
           inset: 0,
           background: `
-            radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.6) 65%, rgba(0,0,0,0.93) 100%),
-            linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.8) 100%)
+            radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.4) 72%, rgba(0,0,0,0.82) 100%),
+            linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%)
           `,
           zIndex: 1,
           pointerEvents: "none",
