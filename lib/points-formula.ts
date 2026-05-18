@@ -202,6 +202,17 @@ export function calculatePoints(input: CalcInput): PointsResult {
     raw = raw * 3;
   }
 
+  // 7.5) МНОЖИТЕЛЬ ОТ ПРЕДМЕТА — ×1.5
+  if (input.activeBuffs?.includes("points_mult_next")) {
+    const before = raw;
+    raw = Math.round(raw * 1.5);
+    breakdown.push({
+      label: "Бафф предмета: ×1.5",
+      value: raw - before,
+      type: "multiplier",
+    });
+  }
+
   // 8) ФАЗОВЫЙ МНОЖИТЕЛЬ — на 15+ дне сезона x1.5
   if (input.seasonDay >= 15) {
     const before = raw;

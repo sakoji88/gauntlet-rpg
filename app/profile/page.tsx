@@ -186,6 +186,14 @@ export default async function ProfilePage() {
             Лавка
           </Link>
           <Link
+            href="/codex"
+            className="btn-dark"
+            style={{ fontSize: "0.85rem", padding: "0.6rem 1.5rem" }}
+          >
+            <BookMarked size={16} style={{ marginRight: "0.5rem" }} />
+            Кодекс
+          </Link>
+          <Link
             href="/duels"
             className="btn-dark"
             style={{

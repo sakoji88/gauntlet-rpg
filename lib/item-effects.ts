@@ -444,6 +444,33 @@ export const EFFECTS: Record<string, EffectMeta> = {
   points_next_2: makePointsBuff("points_next_2", 2),
   points_next_3: makePointsBuff("points_next_3", 3),
   points_next_5: makePointsBuff("points_next_5", 5),
+
+  // ========= BUFF: ×1.5 множитель следующей игре =========
+  points_mult_next: {
+    effectKey: "points_mult_next",
+    class: "BUFF",
+    isUsable: ({ player }) => {
+      const buffs = parseActiveBuffs(player.activeBuffs);
+      return hasBuff(buffs, "points_mult_next")
+        ? { ok: false, reason: "Множитель уже активен" }
+        : { ok: true };
+    },
+    apply: async ({ tx, player, invItem }) => {
+      const buffs = parseActiveBuffs(player.activeBuffs);
+      const next = addBuff(buffs, {
+        effectKey: "points_mult_next",
+        sourceItemId: invItem.itemId,
+        activatedAt: new Date().toISOString(),
+      });
+      await tx.player.update({
+        where: { id: player.id },
+        data: { activeBuffs: serializeActiveBuffs(next) },
+      });
+      return {
+        message: "Готово. Следующая засчитанная игра даст ×1.5 поинтов.",
+      };
+    },
+  },
 };
 
 // Фабрика BUFF-эффекта «+N поинтов следующей игре».

@@ -53,12 +53,12 @@ export const SHOP: ShopEntry[] = [
   { itemId: "rvotnichki",            currency: "gold",   price: 20, sellPrice: 8,  stockLimit: 12 },
   { itemId: "khadyzhensk_beer",      currency: "gold",   price: 28, sellPrice: 11, stockLimit: 10 },
   { itemId: "dushik_chupachups",     currency: "gold",   price: 35, sellPrice: 14, stockLimit: 8 },
-  { itemId: "gotham_tshirt",         currency: "gold",   price: 40, sellPrice: 0,  stockLimit: 5 },
+  { itemId: "gotham_tshirt",         currency: "gold",   price: 40, sellPrice: 16, stockLimit: 5 },
   { itemId: "romanal_chicken_feet",  currency: "gold",   price: 45, sellPrice: 18, stockLimit: 6 },
   { itemId: "vasilisa_perdak",       currency: "gold",   price: 50, sellPrice: 20, stockLimit: 5 },
   { itemId: "fake_beard_chakhlik",   currency: "gold",   price: 60, sellPrice: 24, stockLimit: 3 },
-  { itemId: "chakhlik_hat",          currency: "gold",   price: 65, sellPrice: 0,  stockLimit: 3 },
-  { itemId: "not_bad_days_hoodie",   currency: "gold",   price: 70, sellPrice: 0,  stockLimit: 4 },
+  { itemId: "chakhlik_hat",          currency: "gold",   price: 65, sellPrice: 26, stockLimit: 3 },
+  { itemId: "not_bad_days_hoodie",   currency: "gold",   price: 70, sellPrice: 28, stockLimit: 4 },
   { itemId: "govyada_scalp",         currency: "points", price: 18, sellPrice: 0,  stockLimit: 2 },
 ];
 

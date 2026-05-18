@@ -176,8 +176,8 @@ export async function POST(req: Request) {
     if (hasBuff(buffs, "trap_points")) activeTrapKeys.push("rotten_shawarma");
     // Пассивная Кольцо Жадности — даёт +1 поинт за игру
     if (await hasPassiveEffect(player.id, "greed")) activeBuffKeys.push("greed_ring");
-    // Баффы-расходники «+поинты следующей игре»
-    for (const key of ["points_next_2", "points_next_3", "points_next_5"]) {
+    // Баффы-расходники «+поинты / ×множитель следующей игре»
+    for (const key of ["points_next_2", "points_next_3", "points_next_5", "points_mult_next"]) {
       if (hasBuff(buffs, key)) activeBuffKeys.push(key);
     }
 
@@ -233,7 +233,7 @@ export async function POST(req: Request) {
     if (hasBuff(buffs, "trap_points")) {
       updatedBuffs = removeBuff(updatedBuffs, "trap_points");
     }
-    for (const key of ["points_next_2", "points_next_3", "points_next_5"]) {
+    for (const key of ["points_next_2", "points_next_3", "points_next_5", "points_mult_next"]) {
       if (hasBuff(buffs, key)) updatedBuffs = removeBuff(updatedBuffs, key);
     }
     const buffsJson =

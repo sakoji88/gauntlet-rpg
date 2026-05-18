@@ -5,6 +5,7 @@ import {
   parseActiveBuffs,
   hasBuff,
   removeBuff,
+  addBuff,
   serializeActiveBuffs,
   pruneExpiredBuffs,
 } from "@/lib/active-buffs";
@@ -86,6 +87,7 @@ export async function POST(req: Request) {
   const allItems = await prisma.item.findMany({
     where: {
       rollWeight: { gt: 0 },
+      category: { not: "COSMETIC" }, // косметика (рамки/титулы) с колеса не падает
       ...(hasLuckyRoll
         ? { rarity: { in: ["RARE", "EPIC", "LEGENDARY"] } }
         : {}),
@@ -132,9 +134,10 @@ export async function POST(req: Request) {
     const seen = new Set<string>();
     const drawn: any[] = [];
     let attempts = 0;
-    while (drawn.length < 3 && attempts < 50) {
+    while (drawn.length < 3 && attempts < 80) {
       const i = rollOne();
-      if (!seen.has(i.id)) {
+      // Проклятья (дебаффы) в режиме «выбор из 3» не предлагаем — только в обычном ролле.
+      if (!seen.has(i.id) && !i.effectKey?.startsWith("curse_")) {
         seen.add(i.id);
         drawn.push(i);
       }
@@ -164,6 +167,48 @@ export async function POST(req: Request) {
   }
 
   chosen = rollOne();
+
+  // ПРОКЛЯТЬЕ — предмет в инвентарь НЕ попадает, дебафф применяется сразу.
+  if (chosen.effectKey === "curse_energy" || chosen.effectKey === "curse_points") {
+    let cursedBuffs = playerBuffs;
+    if (hasLuckyRoll) cursedBuffs = removeBuff(cursedBuffs, "lucky_roll");
+    if (hasChooseOfThree) cursedBuffs = removeBuff(cursedBuffs, "choose_of_three");
+    if (chosen.effectKey === "curse_points") {
+      // дебафф −2 поинта на следующей засчитанной игре (как ловушка Шаурмы)
+      cursedBuffs = addBuff(cursedBuffs, {
+        effectKey: "trap_points",
+        sourceItemId: chosen.id,
+        activatedAt: new Date().toISOString(),
+        payload: { magnitude: 2 },
+      });
+    }
+    await prisma.player.update({
+      where: { id: player.id },
+      data: {
+        activeBuffs: serializeActiveBuffs(cursedBuffs),
+        ...(chosen.effectKey === "curse_energy"
+          ? { energy: Math.max(0, player.energy - 1) }
+          : {}),
+      },
+    });
+    await prisma.game.update({
+      where: { id: game.id },
+      data: { description: (game.description ? game.description + " " : "") + "[wheel:spun]" },
+    });
+    return NextResponse.json({
+      success: true,
+      mode: "single",
+      cursed: true,
+      item: {
+        id: chosen.id,
+        name: chosen.name,
+        description: chosen.description,
+        category: chosen.category,
+        rarity: chosen.rarity,
+        iconKey: chosen.iconKey,
+      },
+    });
+  }
 
   // Если активны разовые баффы — сжигаем (single mode = ролл состоялся)
   if (hasLuckyRoll || hasChooseOfThree) {
