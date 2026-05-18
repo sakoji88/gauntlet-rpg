@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(npx prisma *)",
+      "Bash(ls -la .env* 2>/dev/null; echo \"---main repo---\"; ls -la /c/Users/PC/Projects/gauntlet-rpg/.env* 2>/dev/null)",
+      "Bash(cp /c/Users/PC/Projects/gauntlet-rpg/.env .env && echo \"env copied\" && npx prisma db push 2>&1 | tail -20)",
+      "Bash(npx tsx *)",
+      "Bash(sed 's/=.*/=<скрыто>/' .env)",
+      "Bash(grep -iA2 \"env\\\\|DISCORD\\\\|AUTH\\\\|DATABASE\" DEPLOY.md)",
+      "Bash(git fetch *)",
+      "Bash(git rebase *)",
+      "Bash(git push *)",
+      "Bash(sed -n '73,88p' app/inventory/page.tsx)",
+      "Bash(sed -n '41,57p' app/quests/page.tsx)",
+      "Bash(sed -n '62,78p' app/duels/page.tsx)",
+      "Bash(sed -n '94,110p' app/shop/ShopView.tsx)",
+      "Bash(sed -n '53,68p' app/codex/CodexView.tsx)",
+      "Bash(sed -n '65,74p' \"app/player/[id]/page.tsx\")"
+    ]
+  }
+}

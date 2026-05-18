@@ -7,6 +7,7 @@ import { getOrCreatePerovTrial } from "@/lib/perov-server";
 import { parseQuestRewards } from "@/lib/quest-types";
 import { ensureEnergyReset } from "@/lib/energy";
 import MapView from "./MapView";
+import PageBackdrop from "@/app/components/PageBackdrop";
 
 export default async function MapPage() {
   const session = await auth();
@@ -77,7 +78,9 @@ export default async function MapPage() {
       : null;
 
   return (
-    <MapView
+    <>
+      <PageBackdrop image="map.jpg" accent="#8b2424" />
+      <MapView
       regions={REGIONS}
       player={{
         nickname: player.nickname,
@@ -92,6 +95,7 @@ export default async function MapPage() {
       isInPrison={isInPrison}
       regionQuestStatus={regionQuestStatus}
       perovTrial={perovTrial}
-    />
+      />
+    </>
   );
 }

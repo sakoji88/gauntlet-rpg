@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import PageBackdrop from "@/app/components/PageBackdrop";
+import BackLink from "@/app/components/BackLink";
 import { ChevronLeft, Package, Sparkles } from "lucide-react";
 import { RARITY_COLORS, RARITY_NAMES, CATEGORY_NAMES, ItemRarity, ItemCategory, ITEMS } from "@/lib/items";
 import { isPassive } from "@/lib/item-effects";
@@ -71,21 +72,7 @@ export default async function InventoryPage() {
       maxWidth: "1000px",
       margin: "0 auto",
     }}>
-      <Link
-        href="/profile"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "0.5rem",
-          color: "var(--color-text-dim)",
-          textDecoration: "none",
-          fontSize: "0.9rem",
-          marginBottom: "1.5rem",
-        }}
-      >
-        <ChevronLeft size={16} />
-        Профиль
-      </Link>
+      <BackLink />
 
       <div style={{
         display: "flex",

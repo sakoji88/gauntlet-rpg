@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import PageBackdrop from "@/app/components/PageBackdrop";
+import BackLink from "@/app/components/BackLink";
 import { ChevronLeft, Swords, Crown } from "lucide-react";
 import { getCrownHolderId } from "@/lib/crown";
 import DuelChallengePanel from "./DuelChallengePanel";
@@ -60,21 +61,7 @@ export default async function DuelsPage() {
       maxWidth: "1100px",
       margin: "0 auto",
     }}>
-      <Link
-        href="/profile"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "0.5rem",
-          color: "var(--color-text-dim)",
-          textDecoration: "none",
-          marginBottom: "1.5rem",
-          fontSize: "0.9rem",
-        }}
-      >
-        <ChevronLeft size={16} />
-        Профиль
-      </Link>
+      <BackLink />
 
       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1.5rem" }}>
         <Swords size={28} color="var(--color-blood-bright)" />

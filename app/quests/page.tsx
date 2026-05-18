@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import PageBackdrop from "@/app/components/PageBackdrop";
+import BackLink from "@/app/components/BackLink";
 import { ChevronLeft, Scroll, Trophy, Hourglass, X as XIcon, Check, CircleSlash } from "lucide-react";
 import { getRegionById } from "@/lib/regions";
 import { parseQuestRewards } from "@/lib/quest-types";
@@ -39,21 +40,7 @@ export default async function QuestsPage() {
       maxWidth: "900px",
       margin: "0 auto",
     }}>
-      <Link
-        href="/profile"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "0.5rem",
-          color: "var(--color-text-dim)",
-          textDecoration: "none",
-          marginBottom: "1.5rem",
-          fontSize: "0.9rem",
-        }}
-      >
-        <ChevronLeft size={16} />
-        Профиль
-      </Link>
+      <BackLink />
 
       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1.5rem" }}>
         <Scroll size={28} color="var(--color-gold)" />

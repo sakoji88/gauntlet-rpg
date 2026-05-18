@@ -4,7 +4,7 @@
 import { getDialoguesForNpc } from "./dialogues";
 import type { DialogueTemplate } from "./dialogues";
 
-const DIALOGUE_CHANCE_PERCENT = 25;
+const DIALOGUE_CHANCE_PERCENT = 12;
 
 /**
  * Детерминированно решает, появится ли диалог сегодня, и какой именно.

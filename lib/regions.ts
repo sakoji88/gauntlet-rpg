@@ -353,7 +353,7 @@ export const REGIONS: RegionData[] = [
 // Шанс выпадения особого условия NPC (15%).
 // Детерминированно по (playerId + regionId + день) — переход на карту и обратно не помогает.
 // Каждый день у каждого региона — фиксированный результат «настроения NPC».
-export const SPECIAL_CHANCE_PERCENT = 15;
+export const SPECIAL_CHANCE_PERCENT = 8;
 
 export function shouldOfferSpecial(playerId: string, regionId: string, now: Date = new Date()): boolean {
   const day = now.toISOString().slice(0, 10); // YYYY-MM-DD (UTC)

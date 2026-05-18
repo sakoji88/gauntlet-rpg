@@ -4,6 +4,7 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import PageBackdrop from "@/app/components/PageBackdrop";
 import Avatar from "@/app/components/Avatar";
+import BackLink from "@/app/components/BackLink";
 import { getTitleText } from "@/lib/cosmetics";
 import { ChevronLeft, MapPin, Coins, Zap, Trophy, Gamepad2, Package } from "lucide-react";
 import { getClassById } from "@/lib/classes";
@@ -64,14 +65,7 @@ export default async function PublicPlayerPage({
       maxWidth: "900px",
       margin: "0 auto",
     }}>
-      <Link href="/feed" style={{
-        display: "inline-flex", alignItems: "center", gap: "0.5rem",
-        color: "var(--color-text-dim)", textDecoration: "none",
-        fontSize: "0.9rem", marginBottom: "1.5rem",
-      }}>
-        <ChevronLeft size={16} />
-        Хроники
-      </Link>
+      <BackLink fallback="/feed" />
 
       {/* Шапка с аватаркой */}
       <div className="parchment" style={{

@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { ChevronLeft, Coins, Trophy, Loader2, ShoppingBag, Tag } from "lucide-react";
+import { Coins, Trophy, Loader2, ShoppingBag, Tag } from "lucide-react";
 import { RARITY_COLORS, RARITY_NAMES, CATEGORY_NAMES, ItemRarity, ItemCategory } from "@/lib/items";
+import BackLink from "@/app/components/BackLink";
 
 interface BuyItem {
   itemId: string;
@@ -92,21 +92,7 @@ export default function ShopView({ gold, points, buyList, sellList }: ShopViewPr
         margin: "0 auto",
       }}
     >
-      <Link
-        href="/region/bazar"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "0.5rem",
-          color: "var(--color-text-dim)",
-          textDecoration: "none",
-          fontSize: "0.9rem",
-          marginBottom: "1.5rem",
-        }}
-      >
-        <ChevronLeft size={16} />
-        Базар Романала
-      </Link>
+      <BackLink fallback="/region/bazar" />
 
       {/* Шапка */}
       <div

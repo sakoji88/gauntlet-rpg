@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { ChevronLeft, BookOpen, Package } from "lucide-react";
+import { BookOpen, Package } from "lucide-react";
+import BackLink from "@/app/components/BackLink";
 import {
   RARITY_COLORS,
   RARITY_NAMES,
@@ -51,21 +51,7 @@ export default function CodexView({ items }: { items: CodexItem[] }) {
         margin: "0 auto",
       }}
     >
-      <Link
-        href="/profile"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "0.5rem",
-          color: "var(--color-text-dim)",
-          textDecoration: "none",
-          fontSize: "0.9rem",
-          marginBottom: "1.5rem",
-        }}
-      >
-        <ChevronLeft size={16} />
-        Профиль
-      </Link>
+      <BackLink />
 
       <h1 style={{ fontSize: "2.2rem", color: "var(--color-gold)", marginBottom: "0.25rem" }}>
         Кодекс Темнодушного Лета
