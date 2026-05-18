@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { REGIONS, getRegionById } from "@/lib/regions";
 import { getClassById } from "@/lib/classes";
 import { getOrCreatePerovTrial } from "@/lib/perov-server";
+import { peekRegionQuestStatuses } from "@/lib/quest-server";
 import { parseQuestRewards } from "@/lib/quest-types";
 import { ensureEnergyReset } from "@/lib/energy";
 import MapView from "./MapView";
@@ -45,20 +46,19 @@ export default async function MapPage() {
   // игрок свободен, просто стоит на клетке, и должен видеть инфо о других регионах.
   const isInPrison = player.inPrison;
 
-  // Карта статуса квестов по регионам — для маркеров на карте
-  const playerQuests = await prisma.quest.findMany({
-    where: {
-      playerId: player.id,
-      status: { in: ["OFFERED", "ACTIVE"] },
-    },
-    select: { npcRegion: true, status: true },
+  // Статус квестов по регионам — включая доступные, но ещё не взятые
+  const regionQuestStatus = await peekRegionQuestStatuses(player.id);
+
+  // Локации всех игроков — кто где стоит
+  const allPlayers = await prisma.player.findMany({
+    where: { class: { not: null } },
+    select: { nickname: true, currentRegion: true },
   });
-  const regionQuestStatus: Record<string, "OFFERED" | "ACTIVE"> = {};
-  for (const q of playerQuests) {
-    // ACTIVE приоритетнее OFFERED (хотя по бизнес-логике их и не может быть одновременно)
-    if (regionQuestStatus[q.npcRegion] !== "ACTIVE") {
-      regionQuestStatus[q.npcRegion] = q.status as "OFFERED" | "ACTIVE";
-    }
+  const regionPlayers: Record<string, string[]> = {};
+  for (const p of allPlayers) {
+    if (!p.currentRegion) continue;
+    if (!regionPlayers[p.currentRegion]) regionPlayers[p.currentRegion] = [];
+    regionPlayers[p.currentRegion].push(p.nickname);
   }
 
   // === ДУХ ГОМОДРИЛА ПЕРОВА ===
@@ -94,6 +94,7 @@ export default async function MapPage() {
       currentRegion={currentRegion}
       isInPrison={isInPrison}
       regionQuestStatus={regionQuestStatus}
+      regionPlayers={regionPlayers}
       perovTrial={perovTrial}
       />
     </>

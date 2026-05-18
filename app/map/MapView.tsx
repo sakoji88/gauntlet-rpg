@@ -38,6 +38,7 @@ interface MapViewProps {
   currentRegion: RegionData | null;
   isInPrison: boolean;
   regionQuestStatus: Record<string, "OFFERED" | "ACTIVE">;
+  regionPlayers: Record<string, string[]>;
   perovTrial: PerovTrialData | null;
 }
 
@@ -47,6 +48,7 @@ export default function MapView({
   currentRegion,
   isInPrison,
   regionQuestStatus,
+  regionPlayers,
   perovTrial,
 }: MapViewProps) {
   const router = useRouter();
@@ -288,6 +290,7 @@ export default function MapView({
               isDragging={draggingId === region.id}
               editMode={editMode}
               questStatus={regionQuestStatus[region.id]}
+              players={regionPlayers[region.id] ?? []}
               onHover={(r) => !editMode && setHoveredRegion(r)}
               onLeave={() => !editMode && setHoveredRegion(null)}
               onClick={(r) => !editMode && setSelectedRegion(r)}
@@ -408,6 +411,7 @@ function RegionMarker({
   isDragging,
   editMode,
   questStatus,
+  players,
   onHover,
   onLeave,
   onClick,
@@ -421,6 +425,7 @@ function RegionMarker({
   isDragging: boolean;
   editMode: boolean;
   questStatus?: "OFFERED" | "ACTIVE";
+  players: string[];
   onHover: (r: RegionData) => void;
   onLeave: () => void;
   onClick: (r: RegionData) => void;
@@ -501,6 +506,36 @@ function RegionMarker({
           zIndex: 30,
         }}>
           {questStatus === "OFFERED" ? "!" : "✓"}
+        </div>
+      )}
+
+      {/* Игроки в этом регионе — бейдж снизу-слева */}
+      {players.length > 0 && !editMode && (
+        <div
+          title={players.join(", ")}
+          style={{
+            position: "absolute",
+            bottom: "-12px",
+            left: "-12px",
+            minWidth: "22px",
+            height: "22px",
+            padding: "0 5px",
+            borderRadius: "11px",
+            background: "var(--color-bg-secondary)",
+            border: "2px solid var(--color-border-bright)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "1px",
+            color: "var(--color-text-bright)",
+            fontSize: "0.62rem",
+            fontFamily: "var(--font-cinzel)",
+            fontWeight: 700,
+            boxShadow: "0 0 8px rgba(0,0,0,0.6)",
+            zIndex: 30,
+          }}
+        >
+          ☗ {players.length}
         </div>
       )}
 

@@ -104,6 +104,63 @@ export async function getOrCreateQuestForRegion(
 }
 
 /**
+ * READ-ONLY: статус квестов по всем регионам для карты.
+ * Ничего не создаёт. Возвращает:
+ *   "ACTIVE"  — у игрока принят квест от этого NPC
+ *   "OFFERED" — есть предложенный квест ИЛИ доступен новый (можно прийти и взять)
+ * Регионы без квеста в карту не попадают.
+ */
+export async function peekRegionQuestStatuses(
+  playerId: string,
+): Promise<Record<string, "OFFERED" | "ACTIVE">> {
+  const result: Record<string, "OFFERED" | "ACTIVE"> = {};
+
+  const player = await prisma.player.findUnique({ where: { id: playerId } });
+  if (!player) return result;
+
+  const allQuests = await prisma.quest.findMany({ where: { playerId } });
+
+  // Существующие OFFERED/ACTIVE квесты
+  for (const q of allQuests) {
+    if (q.status === "ACTIVE") {
+      result[q.npcRegion] = "ACTIVE";
+    } else if (q.status === "OFFERED" && result[q.npcRegion] !== "ACTIVE") {
+      result[q.npcRegion] = "OFFERED";
+    }
+  }
+
+  // Доступные, но ещё не созданные квесты у открытых NPC
+  const unlocked = getUnlockedNpcs(player.level, player.class, playerId);
+  const cooldowns = parseDeclinedQuestCooldowns(player.declinedQuestCooldowns);
+  const now = new Date();
+  const isCooldownActive = (templateId: string): boolean => {
+    const until = cooldowns[templateId];
+    if (!until) return false;
+    const date = new Date(until);
+    return !isNaN(date.getTime()) && date > now;
+  };
+
+  for (const regionId of unlocked) {
+    if (result[regionId]) continue; // статус уже определён
+    const completedTemplateIds = new Set(
+      allQuests
+        .filter((q) => q.status === "COMPLETED" && q.npcRegion === regionId)
+        .map((q) => q.templateId),
+    );
+    const tpl = selectNextTemplate(
+      regionId,
+      player.level,
+      completedTemplateIds,
+      isCooldownActive,
+      playerId,
+    );
+    if (tpl) result[regionId] = "OFFERED";
+  }
+
+  return result;
+}
+
+/**
  * Выбор следующего квеста для NPC по RPG-логике.
  *
  * Приоритеты:
