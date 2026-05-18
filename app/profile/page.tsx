@@ -5,12 +5,11 @@ import Link from "next/link";
 import PageBackdrop from "@/app/components/PageBackdrop";
 import Avatar from "@/app/components/Avatar";
 import { getTitleText } from "@/lib/cosmetics";
-import { Flame, Shield, MapPin, BookMarked, Package, Scroll, Swords, Crown } from "lucide-react";
+import { Flame, Shield, MapPin, BookMarked, Package, Scroll, Swords, Crown, Skull } from "lucide-react";
 import ActiveGamePanel from "./ActiveGamePanel";
 import ClassActionPanel from "./ClassActionPanel";
 import StealPanel from "./StealPanel";
 import StatDistributionPanel from "./StatDistributionPanel";
-import PunishmentPactPanel from "./PunishmentPactPanel";
 import { getClassActionForPlayer, classActionCooldownLeft } from "@/lib/class-actions";
 import { parseActiveBuffs, findBuff } from "@/lib/active-buffs";
 import { getTrapByBuffKey, TRAP_BUFF_KEYS } from "@/lib/trap-effects";
@@ -37,6 +36,11 @@ export default async function ProfilePage() {
 
   if (!playerFromDb?.class) {
     redirect("/select-class");
+  }
+
+  // Личное Наказание вписывается до входа в игру — гоним на экран ввода
+  if (!playerFromDb.punishmentPact || !playerFromDb.punishmentPact.trim()) {
+    redirect("/punishment");
   }
 
   // Автосброс энергии при заходе на профиль
@@ -432,8 +436,30 @@ export default async function ProfilePage() {
         />
       )}
 
-      {/* Личное Наказание */}
-      <PunishmentPactPanel initialText={player.punishmentPact} />
+      {/* Личное Наказание — вписано один раз, изменить нельзя */}
+      {player.punishmentPact && (
+        <div style={{
+          padding: "1.25rem 1.5rem",
+          background: "var(--color-bg-secondary)",
+          border: "1px solid var(--color-blood-bright)",
+          marginBottom: "1.5rem",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "0.5rem" }}>
+            <Skull size={18} color="var(--color-blood-bright)" />
+            <span style={{
+              fontFamily: "var(--font-cinzel)",
+              color: "var(--color-blood-bright)",
+              letterSpacing: "0.1em",
+              fontSize: "0.95rem",
+            }}>
+              Личное Наказание
+            </span>
+          </div>
+          <p style={{ color: "var(--color-text)", fontStyle: "italic", margin: 0, lineHeight: 1.55 }}>
+            «{player.punishmentPact}»
+          </p>
+        </div>
+      )}
 
       {/* Классовая активка */}
       {classAction && (

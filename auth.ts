@@ -69,8 +69,24 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   // Каждый раз при логине проверяем что Player существует
   // (защита на случай если запись была удалена вручную)
-  async signIn({ user }) {
+  async signIn({ user, profile }) {
     if (!user.id) return;
+
+    // Подтягиваем актуальную аватарку из Discord при каждом входе
+    const p = profile as { id?: string; avatar?: string | null } | undefined;
+    if (p?.id && p.avatar) {
+      const ext = p.avatar.startsWith("a_") ? "gif" : "png";
+      const avatarUrl = `https://cdn.discordapp.com/avatars/${p.id}/${p.avatar}.${ext}`;
+      try {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { image: avatarUrl },
+        });
+      } catch {
+        // не критично — пропускаем
+      }
+    }
+
     const existing = await prisma.player.findUnique({
       where: { userId: user.id },
     });

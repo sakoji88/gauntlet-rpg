@@ -30,6 +30,11 @@ export default async function MapPage() {
     redirect("/select-class");
   }
 
+  // Личное Наказание ещё не вписано — обязательный экран
+  if (!player.punishmentPact || !player.punishmentPact.trim()) {
+    redirect("/punishment");
+  }
+
   // Автосброс энергии при заходе на карту
   player = await ensureEnergyReset(player);
 

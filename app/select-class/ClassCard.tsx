@@ -37,8 +37,8 @@ export default function ClassCard({ classData }: { classData: ClassData }) {
         throw new Error("Не удалось сохранить класс");
       }
 
-      // Успех — переход на профиль
-      router.push("/profile");
+      // Успех — теперь вписать Личное Наказание (обязательный шаг)
+      router.push("/punishment");
       router.refresh();
     } catch (e) {
       console.error(e);
