@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import PageBackdrop from "@/app/components/PageBackdrop";
 import { ChevronLeft, BookMarked, Gamepad2, Check, X, Trophy } from "lucide-react";
 import { getRegionById } from "@/lib/regions";
 import { getClassById } from "@/lib/classes";
@@ -55,7 +56,9 @@ export default async function FeedPage() {
   });
 
   return (
-    <main style={{
+    <>
+      <PageBackdrop image="feed.jpg" accent="#8b2424" />
+      <main style={{
       position: "relative",
       zIndex: 2,
       minHeight: "100vh",
@@ -386,6 +389,7 @@ export default async function FeedPage() {
           </div>
         )}
       </section>
-    </main>
+      </main>
+    </>
   );
 }

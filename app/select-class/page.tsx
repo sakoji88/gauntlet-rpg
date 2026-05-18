@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { CLASSES } from "@/lib/classes";
 import ClassCard from "./ClassCard";
 import { Flame } from "lucide-react";
+import PageBackdrop from "@/app/components/PageBackdrop";
 
 export default async function SelectClassPage() {
   const session = await auth();
@@ -25,7 +26,9 @@ export default async function SelectClassPage() {
   }
 
   return (
-    <main style={{
+    <>
+      <PageBackdrop image="select-class.jpg" accent="#8b2424" />
+      <main style={{
       position: "relative",
       zIndex: 2,
       minHeight: "100vh",
@@ -85,6 +88,7 @@ export default async function SelectClassPage() {
       }}>
         Выбор пути необратим до начала следующего сезона
       </p>
-    </main>
+      </main>
+    </>
   );
 }

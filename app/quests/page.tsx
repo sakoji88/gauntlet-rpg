@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import PageBackdrop from "@/app/components/PageBackdrop";
 import { ChevronLeft, Scroll, Trophy, Hourglass, X as XIcon, Check, CircleSlash } from "lucide-react";
 import { getRegionById } from "@/lib/regions";
 import { parseQuestRewards } from "@/lib/quest-types";
@@ -28,7 +29,9 @@ export default async function QuestsPage() {
   const failed = quests.filter((q) => q.status === "DECLINED" || q.status === "EXPIRED");
 
   return (
-    <main style={{
+    <>
+      <PageBackdrop image="quests.jpg" accent="#d4a574" />
+      <main style={{
       position: "relative",
       zIndex: 2,
       minHeight: "100vh",
@@ -86,7 +89,8 @@ export default async function QuestsPage() {
           quests={failed}
         />
       )}
-    </main>
+      </main>
+    </>
   );
 }
 

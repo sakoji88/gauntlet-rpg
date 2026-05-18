@@ -2,10 +2,13 @@
 
 import { Skull, Flame } from "lucide-react";
 import { signIn } from "next-auth/react";
+import PageBackdrop from "@/app/components/PageBackdrop";
 
 export default function HomePage() {
   return (
-    <main style={{
+    <>
+      <PageBackdrop image="landing.jpg" accent="#8b2424" opacity={0.5} />
+      <main style={{
       position: "relative",
       zIndex: 2,
       minHeight: "100vh",
@@ -83,6 +86,7 @@ export default function HomePage() {
       }}>
         Только по приглашению
       </p>
-    </main>
+      </main>
+    </>
   );
 }

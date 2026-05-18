@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import PageBackdrop from "@/app/components/PageBackdrop";
 import { ChevronLeft, Package, Sparkles } from "lucide-react";
 import { RARITY_COLORS, RARITY_NAMES, CATEGORY_NAMES, ItemRarity, ItemCategory, ITEMS } from "@/lib/items";
 import { isPassive } from "@/lib/item-effects";
@@ -58,7 +59,9 @@ export default async function InventoryPage() {
   ].slice(0, INVENTORY_LIMIT);
 
   return (
-    <main style={{
+    <>
+      <PageBackdrop image="inventory.jpg" accent="#8a6f4a" />
+      <main style={{
       position: "relative",
       zIndex: 2,
       minHeight: "100vh",
@@ -185,7 +188,8 @@ export default async function InventoryPage() {
           Инвентарь пуст. Пройди игру — крутни колесо предметов.
         </div>
       )}
-    </main>
+      </main>
+    </>
   );
 }
 

@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
+import PageBackdrop from "@/app/components/PageBackdrop";
 import { ChevronLeft, MapPin, Coins, Zap, Trophy, Gamepad2, Package } from "lucide-react";
 import { getClassById } from "@/lib/classes";
 import { getRegionById } from "@/lib/regions";
@@ -51,7 +52,9 @@ export default async function PublicPlayerPage({
   const region = getRegionById(player.currentRegion);
 
   return (
-    <main style={{
+    <>
+      <PageBackdrop image="profile.jpg" accent="#d4a574" />
+      <main style={{
       position: "relative",
       zIndex: 2,
       minHeight: "100vh",
@@ -244,7 +247,8 @@ export default async function PublicPlayerPage({
           </div>
         </div>
       )}
-    </main>
+      </main>
+    </>
   );
 }
 
