@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Coins, Trophy, Loader2, ShoppingBag, Tag } from "lucide-react";
 import { RARITY_COLORS, RARITY_NAMES, CATEGORY_NAMES, ItemRarity, ItemCategory } from "@/lib/items";
 import BackLink from "@/app/components/BackLink";
+import { playSfx } from "@/lib/sound";
 
 interface BuyItem {
   itemId: string;
@@ -50,6 +51,7 @@ export default function ShopView({ gold, points, buyList, sellList }: ShopViewPr
         alert(data.error ?? "Ошибка");
         return;
       }
+      playSfx("coin");
       router.refresh();
     } catch {
       alert("Не удалось купить");
@@ -73,6 +75,7 @@ export default function ShopView({ gold, points, buyList, sellList }: ShopViewPr
         alert(data.error ?? "Ошибка");
         return;
       }
+      playSfx("coin");
       router.refresh();
     } catch {
       alert("Не удалось продать");

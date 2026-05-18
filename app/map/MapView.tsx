@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { RegionData, canMoveBetween } from "@/lib/regions";
 import PerovModal, { type PerovTrialData } from "./PerovModal";
+import { playSfx } from "@/lib/sound";
 import {
   Flame,
   User,
@@ -118,6 +119,7 @@ export default function MapView({
         setIsLoading(false);
         return;
       }
+      playSfx("move");
       router.refresh();
       setSelectedRegion(null);
       setIsLoading(false);

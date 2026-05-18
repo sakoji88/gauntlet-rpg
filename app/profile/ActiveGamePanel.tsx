@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Gamepad2, ExternalLink, Check, X, Loader2, Sparkles, Sword, Scroll, Flame, Gem } from "lucide-react";
 import ItemWheelModal from "./ItemWheelModal";
+import { playSfx } from "@/lib/sound";
 
 type ConditionType = "basic" | "genre" | "special";
 
@@ -66,9 +67,11 @@ export default function ActiveGamePanel({ game, activeHype }: ActiveGameProps) {
         return;
       }
       if (data.sentToPrison) {
+        playSfx("fail");
         alert(`Дроп! -${data.pointsLost} поинтов. Ты отправлен в Тюрьму.`);
         router.refresh();
       } else {
+        playSfx("complete");
         // Показываем красивый разбор перед колесом
         setBreakdownData({
           total: data.pointsEarned,
