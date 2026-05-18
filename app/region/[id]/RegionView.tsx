@@ -307,11 +307,10 @@ export default function RegionView({
               {region.id === "bazar" && (
                 <ActionCard
                   icon={<ShoppingBag size={20} />}
-                  title="Магазин"
-                  subtitle="Зелья и свитки"
+                  title="Лавка Романала"
+                  subtitle="Купить и продать"
                   color={region.accentColor}
-                  disabled
-                  onClick={() => {}}
+                  onClick={() => router.push("/shop")}
                 />
               )}
 

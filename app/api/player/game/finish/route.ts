@@ -18,6 +18,11 @@ const POINTS_DROP_PENALTY = -2;
 const EXP_PER_COMPLETION = 10;
 const PRISON_EXP_REWARD = 5;    // EXP за тюремную игру — меньше обычного
 
+// Злато (мягкая валюта магазина) — капает за прохождения
+const GOLD_PER_COMPLETION = 3;  // обычная пройденная игра
+const GOLD_PER_PRISON = 1;      // тюремная игра — меньше
+const GOLD_PER_QUEST = 5;       // выполненный квест
+
 // Тюремные награды (накладываются вместе, можно получить все три)
 const PRISON_FAST_BONUS = 1;        // прошёл быстро (часов ≤ 9)
 const PRISON_FAST_THRESHOLD = 9;
@@ -126,6 +131,7 @@ export async function POST(req: Request) {
           activeGameId: null,
           points: { increment: total },
           exp: { increment: PRISON_EXP_REWARD },
+          gold: { increment: GOLD_PER_PRISON },
           inPrison: false, // ОСВОБОЖДЁН. currentRegion остаётся "prison" — стоит на клетке.
         },
       });
@@ -201,6 +207,7 @@ export async function POST(req: Request) {
       seasonDay,
       activeBuffs: activeBuffKeys,
       activeTraps: activeTrapKeys,
+      firstInSeasonBonus,
     });
 
     // Сжигаем разовые баффы — Сердце Тьмы только при сработавшем max diff,
@@ -250,6 +257,7 @@ export async function POST(req: Request) {
         activeGameId: null,
         points: { increment: result.total },
         exp: { increment: EXP_PER_COMPLETION },
+        gold: { increment: GOLD_PER_COMPLETION },
         ...(buffsJson !== null ? { activeBuffs: buffsJson } : {}),
       },
     });
@@ -268,6 +276,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       pointsEarned: result.total,
+      goldEarned: GOLD_PER_COMPLETION,
       breakdown: result.breakdown,
       cappedAt25: result.cappedAt25,
       questUpdates,
@@ -449,6 +458,7 @@ async function applyQuestProgress(
           data: {
             points: { increment: finalPoints },
             exp: { increment: rewards.exp },
+            gold: { increment: GOLD_PER_QUEST },
           },
         }),
       ]);

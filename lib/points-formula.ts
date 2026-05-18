@@ -46,6 +46,9 @@ interface CalcInput {
   // Активные предметы / эффекты на игрока (на будущее)
   activeBuffs?: string[];    // эффекты-ключи, например ["greed_ring", "heart_of_dark"]
   activeTraps?: string[];    // эффекты-ключи дебаффов от других игроков
+
+  // +поинты, если игрок первым в сезоне прошёл эту игру (учитывается до лимита 25)
+  firstInSeasonBonus?: number;
 }
 
 // === ОСНОВНАЯ ФУНКЦИЯ ===
@@ -131,6 +134,16 @@ export function calculatePoints(input: CalcInput): PointsResult {
   if (classPenalty.value !== 0) {
     raw += classPenalty.value; // value уже отрицательное
     breakdown.push(classPenalty);
+  }
+
+  // 6.5) ПЕРВОЕ ПРОХОЖДЕНИЕ ИГРЫ В СЕЗОНЕ
+  if (input.firstInSeasonBonus && input.firstInSeasonBonus > 0) {
+    raw += input.firstInSeasonBonus;
+    breakdown.push({
+      label: "Первым прошёл эту игру в сезоне",
+      value: input.firstInSeasonBonus,
+      type: "bonus",
+    });
   }
 
   // 7) АКТИВНЫЕ ПРЕДМЕТЫ (на будущее)

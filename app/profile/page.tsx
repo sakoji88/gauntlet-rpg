@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import PageBackdrop from "@/app/components/PageBackdrop";
-import { Flame, Shield, MapPin, BookMarked, Package, Scroll, Swords, Crown } from "lucide-react";
+import { Flame, Shield, MapPin, BookMarked, Package, Scroll, Swords, Crown, Coins } from "lucide-react";
 import ActiveGamePanel from "./ActiveGamePanel";
 import ClassActionPanel from "./ClassActionPanel";
 import StealPanel from "./StealPanel";
@@ -178,6 +178,14 @@ export default async function ProfilePage() {
             Свиток квестов
           </Link>
           <Link
+            href="/shop"
+            className="btn-dark"
+            style={{ fontSize: "0.85rem", padding: "0.6rem 1.5rem" }}
+          >
+            <Coins size={16} style={{ marginRight: "0.5rem" }} />
+            Лавка
+          </Link>
+          <Link
             href="/duels"
             className="btn-dark"
             style={{
@@ -288,6 +296,9 @@ export default async function ProfilePage() {
         }}>
           <div style={{ color: "var(--color-text-dim)" }}>
             Поинты: <span style={{ color: "var(--color-gold)" }}>{player?.points || 0}</span>
+          </div>
+          <div style={{ color: "var(--color-text-dim)" }}>
+            Злато: <span style={{ color: "var(--color-gold)" }}>{player?.gold || 0}</span>
           </div>
           <div style={{ color: "var(--color-text-dim)" }}>
             Энергия: <span style={{ color: "var(--color-gold)" }}>{player?.energy ?? 3}/3</span>

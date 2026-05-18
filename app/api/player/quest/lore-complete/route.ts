@@ -99,6 +99,7 @@ export async function POST(req: Request) {
       data: {
         points: { increment: finalPoints },
         exp: { increment: rewards.exp },
+        gold: { increment: 5 }, // Злато за выполненный квест
       },
     }),
   ]);
