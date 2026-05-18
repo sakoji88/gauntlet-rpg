@@ -14,6 +14,8 @@ export default async function ShopPage() {
   const player = await prisma.player.findUnique({ where: { userId } });
   if (!player) redirect("/");
   if (!player.class) redirect("/select-class");
+  // Лавка доступна только из региона Романала — туда надо физически дойти.
+  if (player.currentRegion !== "bazar") redirect("/map");
 
   // Глобальный сток для лимитированных товаров
   const limitedIds = SHOP.filter((e) => e.stockLimit !== null).map((e) => e.itemId);

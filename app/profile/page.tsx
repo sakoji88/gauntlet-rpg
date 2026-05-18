@@ -5,7 +5,7 @@ import Link from "next/link";
 import PageBackdrop from "@/app/components/PageBackdrop";
 import Avatar from "@/app/components/Avatar";
 import { getTitleText } from "@/lib/cosmetics";
-import { Flame, Shield, MapPin, BookMarked, Package, Scroll, Swords, Crown, Coins } from "lucide-react";
+import { Flame, Shield, MapPin, BookMarked, Package, Scroll, Swords, Crown } from "lucide-react";
 import ActiveGamePanel from "./ActiveGamePanel";
 import ClassActionPanel from "./ClassActionPanel";
 import StealPanel from "./StealPanel";
@@ -27,6 +27,12 @@ export default async function ProfilePage() {
   const userId = (session.user as any).id;
   let playerFromDb = await prisma.player.findUnique({
     where: { userId },
+  });
+
+  // Аватарка/имя берём из БД (User) — в session.user.image может не быть картинки.
+  const dbUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { image: true, name: true },
   });
 
   if (!playerFromDb?.class) {
@@ -180,14 +186,6 @@ export default async function ProfilePage() {
             Свиток квестов
           </Link>
           <Link
-            href="/shop"
-            className="btn-dark"
-            style={{ fontSize: "0.85rem", padding: "0.6rem 1.5rem" }}
-          >
-            <Coins size={16} style={{ marginRight: "0.5rem" }} />
-            Лавка
-          </Link>
-          <Link
             href="/codex"
             className="btn-dark"
             style={{ fontSize: "0.85rem", padding: "0.6rem 1.5rem" }}
@@ -247,10 +245,10 @@ export default async function ProfilePage() {
         }),
       }}>
         <div style={{ display: "flex", gap: "2rem", alignItems: "center", marginBottom: "2rem" }}>
-          {user.image && (
+          {(dbUser?.image || user.image) && (
             <div style={{ position: "relative" }}>
               <Avatar
-                src={user.image}
+                src={dbUser?.image ?? user.image}
                 size={100}
                 frameId={player?.equippedFrameId}
                 alt="Аватар"
