@@ -2,6 +2,7 @@ import { auth, signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import PageBackdrop from "@/app/components/PageBackdrop";
 import { Flame, Shield, MapPin, BookMarked, Package, Scroll, Swords, Crown } from "lucide-react";
 import ActiveGamePanel from "./ActiveGamePanel";
 import ClassActionPanel from "./ClassActionPanel";
@@ -132,7 +133,9 @@ export default async function ProfilePage() {
   const isAdmin = player.isAdmin === true;
 
   return (
-    <main style={{
+    <>
+      <PageBackdrop image="profile.jpg" accent="#d4a574" />
+      <main style={{
       position: "relative",
       zIndex: 2,
       minHeight: "100vh",
@@ -409,7 +412,13 @@ export default async function ProfilePage() {
       {/* Активная игра */}
       {activeGame && (
         <ActiveGamePanel
-          game={activeGame}
+          game={{
+            ...activeGame,
+            conditionType:
+              activeGame.conditionType === "genre" || activeGame.conditionType === "special"
+                ? activeGame.conditionType
+                : "basic",
+          }}
           activeHype={(() => {
             const buffs = parseActiveBuffs(playerFromDb.activeBuffs);
             const hypeBuff = findBuff(buffs, "class_hype");
@@ -478,7 +487,8 @@ export default async function ProfilePage() {
           Покинуть Бездну
         </button>
       </form>
-    </main>
+      </main>
+    </>
   );
 }
 

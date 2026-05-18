@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import PageBackdrop from "@/app/components/PageBackdrop";
 import { ChevronLeft, Swords, Crown } from "lucide-react";
 import { getCrownHolderId } from "@/lib/crown";
 import DuelChallengePanel from "./DuelChallengePanel";
@@ -49,7 +50,9 @@ export default async function DuelsPage() {
   );
 
   return (
-    <main style={{
+    <>
+      <PageBackdrop image="duels.jpg" accent="#8b2424" />
+      <main style={{
       position: "relative",
       zIndex: 2,
       minHeight: "100vh",
@@ -84,7 +87,9 @@ export default async function DuelsPage() {
           Арена дуэлей
         </h1>
         {crownHolderId === me.id && (
-          <Crown size={22} color="var(--color-gold)" title="Корона Короля Стрима" />
+          <span title="Корона Короля Стрима" style={{ display: "inline-flex" }}>
+            <Crown size={22} color="var(--color-gold)" />
+          </span>
         )}
       </div>
 
@@ -132,7 +137,8 @@ export default async function DuelsPage() {
           Пока никаких дуэлей. Брось вызов сверху.
         </p>
       )}
-    </main>
+      </main>
+    </>
   );
 }
 

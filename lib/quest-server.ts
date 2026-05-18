@@ -19,6 +19,7 @@ const DECLINE_COOLDOWNS_BY_TIER: Record<QuestTier, number> = {
   STARTER: 1,
   STORY: 1,
   SIDE: 2,
+  PEROV: 7, // Перов появляется не чаще раза в неделю
 };
 
 // Cooldown отказа, который мы возвращаем во внешний мир (для UI и устаревшего использования)

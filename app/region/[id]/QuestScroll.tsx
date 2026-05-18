@@ -24,7 +24,7 @@ export interface QuestProps {
   progress: number;
   expiresAt: string | null;
   rewards: string; // JSON
-  tier: "STARTER" | "STORY" | "SIDE";
+  tier: "STARTER" | "STORY" | "SIDE" | "PEROV";
   chapterIndex?: number | null;
 }
 

@@ -172,12 +172,7 @@ export async function POST(req: Request) {
     if (await hasPassiveEffect(player.id, "greed")) activeBuffKeys.push("greed_ring");
 
     // +2 если это ПЕРВОЕ прохождение этой игры в текущем сезоне (кем-либо).
-    // Сравниваем по нормализованному title (lowercase + trim).
-    const season = await prisma.season.findFirst({
-      where: { endedAt: null },
-      orderBy: { startedAt: "desc" },
-    });
-    const normalizedTitle = game.title.trim().toLowerCase();
+    // Сравниваем по title без регистра.
     let firstInSeasonBonus = 0;
     if (season) {
       const alreadyDone = await prisma.game.findFirst({
