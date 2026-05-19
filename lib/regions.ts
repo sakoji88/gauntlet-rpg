@@ -318,13 +318,33 @@ export const REGIONS: RegionData[] = [
     shortName: "Ателье",
     npcName: "Портной Пеньков",
     npcTitle: "Кутюрье",
-    genres: [], // Без жанров — мета-NPC
-    passiveBonus: "Доступ к косметике профиля пока ты здесь",
+    genres: ["Shooter", "FPS", "Tactical Shooter", "Hero Shooter", "Battle Royale"],
+    passiveBonus: "Доступ к косметике профиля + роллы со вкусом пороха",
     description: "Неоновая вывеска посреди тьмы. Манекены в вечерних платьях.",
     position: { x: 80.2, y: 48.3 },
     accentColor: "#a8588a",
     neighbors: ["terem", "kukhnya", "chakhly-bor", "bazar"],
-    // Ателье не роллит игры — conditions отсутствуют
+    conditions: {
+      basic: {
+        description: "Shooter / FPS / Tactical / Battle Royale. От 5 часов.",
+        flavor: "Стрельба — тоже искусство, дорогуша. Покажи, что у тебя есть вкус к свинцу.",
+        genres: ["Shooter", "FPS", "Tactical Shooter", "Hero Shooter", "Battle Royale"],
+        minHours: 5,
+      },
+      genre: {
+        description: "FPS или Tactical Shooter. 12+ часов.",
+        flavor: "Fi-fi. Не просто пострелять — пройти с чувством стиля. Долго и со вкусом.",
+        genres: ["FPS", "Tactical Shooter"],
+        minHours: 12,
+      },
+      special: {
+        description: "Shooter / FPS. Рейтинг 80+. На максимальной сложности.",
+        flavor: "Идеальный крой — идеальный выстрел. Только высший сорт, только на максималке. Иначе — безвкусица.",
+        genres: ["Shooter", "FPS", "Tactical Shooter"],
+        minRating: 80,
+        requireMaxDifficulty: true,
+      },
+    },
   },
   // Тюрьма — особое место, не регион в обычном смысле
   {
