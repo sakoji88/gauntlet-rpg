@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Gamepad2, ExternalLink, Check, X, Loader2, Sparkles, Sword, Scroll, Flame, Gem } from "lucide-react";
+import { Gamepad2, ExternalLink, Check, X, Loader2, Sparkles, Sword, Scroll, Flame, Gem, RotateCcw } from "lucide-react";
 import ItemWheelModal from "./ItemWheelModal";
 import { playSfx } from "@/lib/sound";
 
@@ -87,6 +87,30 @@ export default function ActiveGamePanel({ game, activeHype }: ActiveGameProps) {
     }
   }
 
+  async function handleTechReroll() {
+    if (
+      !confirm(
+        "Тех-реролл: игра не работает или недоступна? Снимем её без штрафа и вернём ход — роллнёшь заново.",
+      )
+    ) {
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/player/reroll-tech", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error ?? "Ошибка");
+        setIsLoading(false);
+        return;
+      }
+      router.refresh();
+    } catch {
+      alert("Ошибка соединения");
+      setIsLoading(false);
+    }
+  }
+
   return (
     <>
       <div className="parchment" style={{
@@ -165,6 +189,35 @@ export default function ActiveGamePanel({ game, activeHype }: ActiveGameProps) {
               Дропнуть
             </button>
           </div>
+        )}
+
+        {/* Тех-реролл — на случай, если выпавшая игра не работает */}
+        {!confirming && (
+          <button
+            onClick={handleTechReroll}
+            disabled={isLoading}
+            title="Игра не работает или недоступна — снять без штрафа и роллнуть заново"
+            style={{
+              marginTop: "0.6rem",
+              width: "100%",
+              padding: "0.4rem",
+              background: "transparent",
+              border: "1px solid var(--color-gold-dim)",
+              color: "var(--color-gold-dim)",
+              cursor: isLoading ? "not-allowed" : "pointer",
+              fontFamily: "var(--font-cinzel)",
+              fontSize: "0.7rem",
+              letterSpacing: "0.05em",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "0.35rem",
+              boxShadow: "0 0 10px rgba(212,165,116,0.18)",
+            }}
+          >
+            <RotateCcw size={12} />
+            Тех-реролл (игра не работает)
+          </button>
         )}
 
         {confirming === "complete" && (

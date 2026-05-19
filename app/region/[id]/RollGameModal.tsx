@@ -512,7 +512,7 @@ function RollForm({
         {!iframeBlocked ? (
           <>
             <iframe
-              src="https://gamegauntlets.com/#wheel"
+              src="https://pickaga.me/"
               onLoad={onIframeLoad}
               style={{ width: "100%", height: "100%", border: "none" }}
             />
@@ -562,11 +562,11 @@ function RollForm({
                 lineHeight: 1.5,
               }}
             >
-              gamegauntlets.com защищён от встраивания. Открой его в новой вкладке, крутни колесо,
+              pickaga.me защищён от встраивания. Открой его в новой вкладке, крутни колесо,
               потом вернись и впиши что выпало в форме справа.
             </p>
             <a
-              href="https://gamegauntlets.com/#wheel"
+              href="https://pickaga.me/"
               target="_blank"
               rel="noopener noreferrer"
               className="btn-dark"
