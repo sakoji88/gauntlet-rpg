@@ -49,6 +49,12 @@ export default function AdminDashboard(props: any) {
           }}>
             🎯 ИРЛ-квесты
           </Link>
+          <Link href="/admin/content" style={{
+            display: "inline-flex", alignItems: "center", gap: "0.5rem",
+            color: "var(--color-gold)", textDecoration: "none", fontSize: "0.9rem",
+          }}>
+            📜 Контент
+          </Link>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>

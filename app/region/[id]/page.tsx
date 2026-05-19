@@ -6,6 +6,7 @@ import { NPC_DIALOGUES } from "@/lib/npc-dialogues";
 import { getOrCreateQuestForRegion } from "@/lib/quest-server";
 import { getTemplateById } from "@/lib/quest-templates";
 import { pickDialogueForVisit } from "@/lib/dialogue-server";
+import { applyConditionTextOverrides } from "@/lib/content-server";
 import { parseAttitudes, parseSeenDialogues, attitudeLevel, ATTITUDE_LABELS, ATTITUDE_COLORS } from "@/lib/dialogues";
 import RegionView from "./RegionView";
 
@@ -23,8 +24,10 @@ export default async function RegionPage({
   if (!player) redirect("/");
   if (!player.class) redirect("/select-class");
 
-  const region = getRegionById(id);
-  if (!region) redirect("/map");
+  const baseRegion = getRegionById(id);
+  if (!baseRegion) redirect("/map");
+  // Накладываем админские правки текста условий NPC
+  const region = await applyConditionTextOverrides(baseRegion);
 
   if (player.currentRegion !== region.id) {
     redirect("/map");
@@ -71,7 +74,7 @@ export default async function RegionPage({
 
   let dialogueForRegion = null;
   if (region.id !== "prison" && !isBlocked) {
-    const dlg = pickDialogueForVisit(player.id, region.id, seenDialogues);
+    const dlg = await pickDialogueForVisit(player.id, region.id, seenDialogues);
     if (dlg) {
       dialogueForRegion = {
         id: dlg.id,

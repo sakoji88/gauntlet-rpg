@@ -268,6 +268,29 @@ enum QuestType {
   IRL
 }
 
+// Правка текста условий NPC админом. Перекрывает description/flavor
+// из lib/regions.ts для конкретного региона и типа условия.
+model ConditionTextOverride {
+  id            String   @id @default(cuid())
+  regionId      String
+  conditionType String   // "basic" | "genre" | "special"
+  description   String
+  flavor        String
+  updatedAt     DateTime @updatedAt
+
+  @@unique([regionId, conditionType])
+}
+
+// Пользовательские диалоги NPC, добавленные админом. Мержатся со статикой
+// из lib/dialogues.ts. choices — JSON-массив { text, attitudeDelta, response }.
+model CustomDialogue {
+  id        String   @id @default(cuid())
+  npcRegion String
+  prompt    String
+  choices   String
+  createdAt DateTime @default(now())
+}
+
 // Пул ИРЛ-квестов — заводится админом. Сами Quest-записи раздаются игрокам
 // из этого пула (конкретному игроку или случайному, без повторов на игрока).
 model IrlQuestTemplate {
