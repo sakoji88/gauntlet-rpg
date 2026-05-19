@@ -317,11 +317,10 @@ export default function RegionView({
               {region.id === "kukhnya" && (
                 <ActionCard
                   icon={<FlaskRound size={20} />}
-                  title="Крафт"
-                  subtitle="Свари что-нибудь"
+                  title="Котёл Гнилостня"
+                  subtitle="Сварить расходник за Злато"
                   color={region.accentColor}
-                  disabled
-                  onClick={() => {}}
+                  onClick={() => router.push("/cauldron")}
                 />
               )}
 
