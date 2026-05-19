@@ -10,24 +10,23 @@
 const KEY_MUSIC = "ds_music_on";
 const KEY_SFX = "ds_sfx_on";
 
-// Звуки событий — короткие клипы. Положи файлы в /public/audio/sfx/.
+// Звуки событий — короткие клипы. Все файлы кладём в /public/audio/.
 export const SFX: Record<string, string> = {
-  click: "/audio/sfx/click.mp3",        // клик/кнопка
-  move: "/audio/sfx/move.mp3",          // переход на локацию
-  roll: "/audio/sfx/roll.mp3",          // ролл игры
-  wheel: "/audio/sfx/wheel.mp3",        // крутка колеса предметов
-  quest: "/audio/sfx/quest_complete.mp3", // выполнен квест
-  complete: "/audio/sfx/complete.mp3",  // засчитана игра
-  coin: "/audio/sfx/coin.mp3",          // покупка/Злато
-  fail: "/audio/sfx/fail.mp3",          // дроп/провал/ловушка
-  levelup: "/audio/sfx/levelup.mp3",    // новый уровень
+  click: "/audio/click.mp3",          // клик/кнопка
+  move: "/audio/move.mp3",            // переход на локацию
+  roll: "/audio/roll.mp3",            // ролл игры
+  wheel: "/audio/wheel.mp3",          // крутка колеса предметов
+  quest: "/audio/quest_complete.mp3", // выполнен квест
+  complete: "/audio/complete.mp3",    // засчитана игра
+  coin: "/audio/coin.mp3",            // покупка/Злато
+  fail: "/audio/fail.mp3",            // дроп/провал/ловушка
+  levelup: "/audio/levelup.mp3",      // новый уровень
 };
 
-// Фоновая музыка — плейлист. Положи файлы в /public/audio/music/.
+// Фоновая музыка — плейлист. Файлы кладём в /public/audio/.
+// Чтобы добавить трек: залей файл и впиши его сюда строкой.
 export const MUSIC_TRACKS: string[] = [
-  "/audio/music/track1.mp3",
-  "/audio/music/track2.mp3",
-  "/audio/music/track3.mp3",
+  "/audio/track1.mp3",
 ];
 
 // === Состояние ===

@@ -57,9 +57,18 @@ export default function SoundControl() {
     if (next) playSfx("click");
   }
 
-  // Следующий трек по окончании текущего
+  // Следующий трек по окончании текущего.
+  // Если трек один — просто перезапускаем его (зацикливаем).
   function nextTrack() {
-    setTrackIdx((i) => (i + 1) % Math.max(1, MUSIC_TRACKS.length));
+    if (MUSIC_TRACKS.length <= 1) {
+      const audio = audioRef.current;
+      if (audio) {
+        audio.currentTime = 0;
+        audio.play().catch(() => {});
+      }
+      return;
+    }
+    setTrackIdx((i) => (i + 1) % MUSIC_TRACKS.length);
   }
 
   return (
