@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Cinzel, Cormorant_Garamond } from "next/font/google";
 import { Providers } from "./providers";
 import SoundControl from "./components/SoundControl";
+import NotificationBell from "./components/NotificationBell";
 import "./globals.css";
 
 const cinzel = Cinzel({
@@ -31,6 +32,7 @@ export default function RootLayout({
       <body className={`${cinzel.variable} ${cormorant.variable} vignette`}>
         <Providers>{children}</Providers>
         <SoundControl />
+        <NotificationBell />
       </body>
     </html>
   );
