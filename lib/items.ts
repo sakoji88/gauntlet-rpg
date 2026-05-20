@@ -96,10 +96,10 @@ export const ITEMS: ItemDef[] = [
   },
   {
     id: "stealth_cloak",
-    name: "Плащ Стелса",
-    description: "Скрывает твою активную игру из публичной ленты на 48 часов.",
-    category: "EQUIPMENT", rarity: "RARE",
-    iconKey: "cloak", effectKey: "hide_game",
+    name: "Плащ Магистра",
+    description: "Втихаря прочёл магистра книгу. Следующая засчитанная игра даст ×2 опыта.",
+    category: "CONSUMABLE", rarity: "RARE",
+    iconKey: "cloak", effectKey: "exp_double_next",
     charges: 1, rollWeight: 5,
   },
   {
@@ -367,17 +367,17 @@ export const ITEMS: ItemDef[] = [
   {
     id: "kharitonov_ticket",
     name: "Билет на Харитонова 10",
-    description: "Прокатился — вернулся другим. Реролл активной игры без штрафа.",
+    description: "Прокатился — увидел жизнь как есть. Следующая засчитанная игра даст +1 поинт за каждый активный на тебе дебафф (до +6).",
     category: "CONSUMABLE", rarity: "RARE",
-    iconKey: "ticket", effectKey: "reroll_game",
+    iconKey: "ticket", effectKey: "lucky_loser",
     charges: 1, rollWeight: 6,
   },
   {
     id: "dushik_analyses",
     name: "Анализы Душика",
-    description: "Диагноз поставлен — порча снята. Снимает все дебаффы и ловушки с тебя.",
+    description: "Порча обращена в дар: снимает один случайный дебафф и выдаёт случайный бафф взамен.",
     category: "CONSUMABLE", rarity: "RARE",
-    iconKey: "analyses", effectKey: "cleanse_debuffs",
+    iconKey: "analyses", effectKey: "debuff_to_buff",
     charges: 1, rollWeight: 6,
   },
 
@@ -426,11 +426,11 @@ export const ITEMS: ItemDef[] = [
   // ----- Экипировка (пассивки) -----
   {
     id: "dongle",
-    name: "Донгл",
-    description: "Воткнул — и тебя как будто нет в сети. Скрывает твою активную игру из ленты.",
-    category: "EQUIPMENT", rarity: "RARE",
-    iconKey: "dongle", effectKey: "hide_game",
-    charges: 99, rollWeight: 6,
+    name: "Донгл Отстающего",
+    description: "Подключился к чужим серверам — подсмотрел гайды лидеров. Следующая игра даёт +поинты по твоему месту в рейтинге (2-е → +1, …, 7+ → +6).",
+    category: "CONSUMABLE", rarity: "RARE",
+    iconKey: "dongle", effectKey: "catch_up_bonus",
+    charges: 1, rollWeight: 6,
   },
   {
     id: "rusnyak_opel",
@@ -540,10 +540,10 @@ export const ITEMS: ItemDef[] = [
   {
     id: "fake_beard_chakhlik",
     name: "Накладная борода Чахлика",
-    description: "Густая борода отшельника. Носишь — скрываешь активную игру из ленты.",
-    category: "EQUIPMENT", rarity: "EPIC",
-    iconKey: "beard", effectKey: "hide_game",
-    charges: 99, rollWeight: 0,
+    description: "Под бородой стражники тебя не узнают. Следующий дроп не отправит в Тюрьму (−2 поинта всё равно получишь).",
+    category: "CONSUMABLE", rarity: "EPIC",
+    iconKey: "beard", effectKey: "no_prison_next_drop",
+    charges: 1, rollWeight: 0,
   },
   {
     id: "dushik_chupachups",

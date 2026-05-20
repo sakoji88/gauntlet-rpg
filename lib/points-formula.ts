@@ -49,6 +49,10 @@ interface CalcInput {
 
   // +поинты, если игрок первым в сезоне прошёл эту игру (учитывается до лимита 25)
   firstInSeasonBonus?: number;
+
+  // Дополнительный плоский бонус от баффов предметов (catch_up, lucky_loser и т.п.),
+  // с готовой подписью. Применяется до лимита 25.
+  itemFlatBonus?: { label: string; value: number };
 }
 
 // === ОСНОВНАЯ ФУНКЦИЯ ===
@@ -142,6 +146,15 @@ export function calculatePoints(input: CalcInput): PointsResult {
     breakdown.push({
       label: "Первым прошёл эту игру в сезоне",
       value: input.firstInSeasonBonus,
+      type: "bonus",
+    });
+  }
+
+  if (input.itemFlatBonus && input.itemFlatBonus.value > 0) {
+    raw += input.itemFlatBonus.value;
+    breakdown.push({
+      label: input.itemFlatBonus.label,
+      value: input.itemFlatBonus.value,
       type: "bonus",
     });
   }

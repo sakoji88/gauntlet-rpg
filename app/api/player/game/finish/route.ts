@@ -11,6 +11,7 @@ import {
   hasBuff,
 } from "@/lib/active-buffs";
 import { hasPassiveEffect } from "@/lib/item-effects";
+import { TRAP_BUFF_KEYS } from "@/lib/trap-effects";
 import type { Quest, Player } from "@prisma/client";
 
 const PRISON_REGION_ID = "prison";
@@ -196,6 +197,30 @@ export async function POST(req: Request) {
       if (!alreadyDone) firstInSeasonBonus = 2;
     }
 
+    // Плоский бонус предметов: догоняющему (catch_up) + удачник-неудачник (lucky_loser).
+    let itemFlatBonus: { label: string; value: number } | undefined;
+    let catchUpBonus = 0;
+    let luckyLoserBonus = 0;
+    if (hasBuff(buffs, "catch_up_bonus")) {
+      const rankBetterCount = await prisma.player.count({
+        where: { class: { not: null }, points: { gt: player.points } },
+      });
+      catchUpBonus = Math.min(6, rankBetterCount);
+    }
+    if (hasBuff(buffs, "lucky_loser")) {
+      const debuffCount = buffs.filter(
+        (b) => TRAP_BUFF_KEYS.includes(b.effectKey) || b.effectKey === "perov_disdain",
+      ).length;
+      luckyLoserBonus = Math.min(6, debuffCount);
+    }
+    const flatBonus = catchUpBonus + luckyLoserBonus;
+    if (flatBonus > 0) {
+      const parts: string[] = [];
+      if (catchUpBonus > 0) parts.push(`догоняешь лидера +${catchUpBonus}`);
+      if (luckyLoserBonus > 0) parts.push(`удачник-неудачник +${luckyLoserBonus}`);
+      itemFlatBonus = { label: `Бафф: ${parts.join(", ")}`, value: flatBonus };
+    }
+
     // Рассчитываем поинты по формуле
     const result = calculatePoints({
       region: game.region,
@@ -212,6 +237,7 @@ export async function POST(req: Request) {
       activeBuffs: activeBuffKeys,
       activeTraps: activeTrapKeys,
       firstInSeasonBonus,
+      itemFlatBonus,
     });
 
     // Сжигаем разовые баффы — Сердце Тьмы только при сработавшем max diff,
@@ -239,6 +265,12 @@ export async function POST(req: Request) {
     // Бафф ×2 Злата на следующую игру — сжигаем здесь, эффект применяется ниже
     const goldDoubleActive = hasBuff(buffs, "gold_double_next");
     if (goldDoubleActive) updatedBuffs = removeBuff(updatedBuffs, "gold_double_next");
+    // Бафф ×2 опыта — сжигаем, множитель ниже
+    const expDoubleActive = hasBuff(buffs, "exp_double_next");
+    if (expDoubleActive) updatedBuffs = removeBuff(updatedBuffs, "exp_double_next");
+    // Догоняющие баффы сжигаем после применения
+    if (hasBuff(buffs, "catch_up_bonus")) updatedBuffs = removeBuff(updatedBuffs, "catch_up_bonus");
+    if (hasBuff(buffs, "lucky_loser")) updatedBuffs = removeBuff(updatedBuffs, "lucky_loser");
     const buffsJson =
       updatedBuffs.length !== buffs.length
         ? serializeActiveBuffs(updatedBuffs)
@@ -268,12 +300,14 @@ export async function POST(req: Request) {
     let goldGain = GOLD_PER_COMPLETION + (hasGoldFind ? 2 : 0) + bazarBonus;
     if (goldDoubleActive) goldGain *= 2; // Чизкейк Нью-Йорк
 
+    const expGain = EXP_PER_COMPLETION * (expDoubleActive ? 2 : 1);
+
     await prisma.player.update({
       where: { id: player.id },
       data: {
         activeGameId: null,
         points: { increment: result.total },
-        exp: { increment: EXP_PER_COMPLETION },
+        exp: { increment: expGain },
         gold: { increment: goldGain },
         ...(buffsJson !== null ? { activeBuffs: buffsJson } : {}),
       },
@@ -346,21 +380,33 @@ export async function POST(req: Request) {
       },
     });
 
+    // Бафф «Накладная борода» — этот дроп не отправляет в Тюрьму
+    const dropBuffsAll = parseActiveBuffs(player.activeBuffs);
+    const dodgePrison = hasBuff(dropBuffsAll, "no_prison_next_drop");
+    const dropBuffsAfter = dodgePrison
+      ? removeBuff(dropBuffsAll, "no_prison_next_drop")
+      : dropBuffsAll;
+
     await prisma.player.update({
       where: { id: player.id },
       data: {
         activeGameId: null,
         points: { increment: POINTS_DROP_PENALTY },
-        currentRegion: PRISON_REGION_ID,
-        inPrison: true, // в любом случае — арест активен
+        ...(dodgePrison
+          ? {}
+          : { currentRegion: PRISON_REGION_ID, inPrison: true }),
+        ...(dodgePrison
+          ? { activeBuffs: serializeActiveBuffs(dropBuffsAfter) }
+          : {}),
       },
     });
 
     return NextResponse.json({
       success: true,
-      sentToPrison: true,
-      stayedInPrison: wasInPrison,
+      sentToPrison: !dodgePrison,
+      stayedInPrison: wasInPrison && !dodgePrison,
       pointsLost: Math.abs(POINTS_DROP_PENALTY),
+      dodgedPrison: dodgePrison,
     });
   }
 }

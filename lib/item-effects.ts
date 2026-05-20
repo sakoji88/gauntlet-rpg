@@ -505,6 +505,75 @@ export const EFFECTS: Record<string, EffectMeta> = {
     "protect_from_trap",
     "Защита надета. Первая брошенная в тебя ловушка не сработает.",
   ),
+
+  // ========= BUFF: следующая игра — ×2 опыта =========
+  exp_double_next: makeMarkerBuff(
+    "exp_double_next",
+    "Готово. Следующая засчитанная игра даст ×2 опыта.",
+  ),
+
+  // ========= BUFF: бонус догоняющему — +N поинтов по месту в рейтинге =========
+  catch_up_bonus: makeMarkerBuff(
+    "catch_up_bonus",
+    "Готово. Следующая игра даст +поинты по твоему отставанию от лидера (до +6).",
+  ),
+
+  // ========= BUFF: +1 поинт за каждый активный дебафф на следующей игре =========
+  lucky_loser: makeMarkerBuff(
+    "lucky_loser",
+    "Готово. Следующая игра даст +1 поинт за каждый активный на тебе дебафф (до +6).",
+  ),
+
+  // ========= BUFF: следующий дроп — без Тюрьмы =========
+  no_prison_next_drop: makeMarkerBuff(
+    "no_prison_next_drop",
+    "Готово. Если дропнешь следующую игру — −2 поинта получишь, но в Тюрьму не пойдёшь.",
+  ),
+
+  // ========= INSTANT: снять случайный дебафф, выдать случайный бафф =========
+  debuff_to_buff: {
+    effectKey: "debuff_to_buff",
+    class: "INSTANT",
+    isUsable: ({ player }) => {
+      const buffs = parseActiveBuffs(player.activeBuffs);
+      const bad = buffs.filter(
+        (b) => TRAP_BUFF_KEYS.includes(b.effectKey) || b.effectKey === "perov_disdain",
+      );
+      return bad.length > 0
+        ? { ok: true }
+        : { ok: false, reason: "На тебе нет дебаффов — нечего конвертировать" };
+    },
+    apply: async ({ tx, player, invItem }) => {
+      let buffs = parseActiveBuffs(player.activeBuffs);
+      const bad = buffs.filter(
+        (b) => TRAP_BUFF_KEYS.includes(b.effectKey) || b.effectKey === "perov_disdain",
+      );
+      // Снимаем один случайный дебафф
+      const removed = bad[Math.floor(Math.random() * bad.length)];
+      buffs = removeBuff(buffs, removed.effectKey);
+      // Выдаём случайный бафф из пула
+      const goodPool = [
+        "lucky_roll",
+        "choose_of_three",
+        "points_next_3",
+        "gold_double_next",
+        "free_move",
+      ];
+      const goodKey = goodPool[Math.floor(Math.random() * goodPool.length)];
+      buffs = addBuff(buffs, {
+        effectKey: goodKey,
+        sourceItemId: invItem.itemId,
+        activatedAt: new Date().toISOString(),
+      });
+      await tx.player.update({
+        where: { id: player.id },
+        data: { activeBuffs: serializeActiveBuffs(buffs) },
+      });
+      return {
+        message: `Порча обращена в дар. Дебафф снят, выдан бафф: ${goodKey}.`,
+      };
+    },
+  },
 };
 
 // Универсальная фабрика BUFF-маркеров — кладёт бафф в Player.activeBuffs,
@@ -573,7 +642,6 @@ function makePointsBuff(effectKey: string, amount: number): EffectMeta {
 export const PASSIVE_EFFECT_KEYS = new Set([
   "cheap_move",
   "greed",
-  "hide_game",
   "passive_gold_find",
 ]);
 
