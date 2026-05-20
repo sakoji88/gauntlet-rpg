@@ -177,7 +177,7 @@ export const REGIONS: RegionData[] = [
     npcName: "Романал Жидовский",
     npcTitle: "Торговец-Травник",
     genres: ["Strategy", "Simulation", "Tycoon", "Trading"],
-    passiveBonus: "Скидка 20% в магазине пока ты здесь",
+    passiveBonus: "Торгашеский нюх: +2 Злата за каждое засчитанное прохождение пока ты в Базаре",
     description: "Шатры пёстрых тканей, аромат специй, шёпот сделок.",
     position:  { x: 22.6, y: 57.3 },
     accentColor: "#c9882f",

@@ -59,7 +59,7 @@ high detail, cinematic, no text, no watermark, no modern objects
 | `tabor.jpg` | Табор Клопса | `a gypsy camp at night, painted wagons, a wheel of fortune, bonfire, trickery` |
 | `pustyri.jpg` | Пустыри Галемиуса | `bleak wasteland ruins, a lone knight's banner, broken concrete and ash` |
 | `kukhnya.jpg` | Гнилая Кухня | `a grotesque army kitchen, huge cauldrons, hanging meat, steam and grime` |
-| `atelye.jpg` | Ателье Пенькова | `a refined gothic tailor's atelier, mannequins, fabrics, mirrors, vain elegance` |
+| `atelye.jpg` | Ателье Пенькова | `a humble medieval tailor's workshop, wooden workbench, rough sewing tools, bolts of dark cloth, lit candles, plain mannequins, modest and grim, no gothic glam, no neon` |
 | `prison.jpg` | Тюрьма | `a cold stone dungeon cell, iron bars, straw, a silent guard's shadow` |
 
 ---
@@ -94,7 +94,7 @@ high detail, cinematic, no text, no watermark, no modern objects
 | `tabor.png` | Мистер Клопс | `a loud emotional gypsy trickster conjurer, cards, gold tooth` |
 | `pustyri.png` | Рыцарь Галемиус | `a serious noble wandering knight, worn armor, dignified` |
 | `kukhnya.png` | Гнилостень Лоненков | `a screaming choleric army cook, ladle, obsessed with cooking` |
-| `atelye.png` | Портной Пеньков | `a refined disdainful gothic couturier, fine clothes, measuring tape` |
+| `atelye.png` | Портной Пеньков | `a plain medieval male tailor, simple linen tunic and apron, leather belt, calloused hands, holding scissors and measuring cord, weary craftsman face with a moustache, modest workshop background, NOT gothic, NOT flamboyant, NOT modern, masculine and grounded` |
 
 ---
 

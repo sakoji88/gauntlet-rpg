@@ -258,9 +258,11 @@ export async function POST(req: Request) {
       },
     });
 
-    // Пассивка «находит Злато» — +2 Злата за игру
+    // Пассивка «находит Злато» — +2 Злата за игру.
+    // Пассивка Базара — +2 Злата если игрок засчитал игру стоя в Базаре.
     const hasGoldFind = await hasPassiveEffect(player.id, "passive_gold_find");
-    const goldGain = GOLD_PER_COMPLETION + (hasGoldFind ? 2 : 0);
+    const bazarBonus = player.currentRegion === "bazar" ? 2 : 0;
+    const goldGain = GOLD_PER_COMPLETION + (hasGoldFind ? 2 : 0) + bazarBonus;
 
     await prisma.player.update({
       where: { id: player.id },
