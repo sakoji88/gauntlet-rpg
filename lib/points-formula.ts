@@ -150,12 +150,12 @@ export function calculatePoints(input: CalcInput): PointsResult {
     });
   }
 
-  if (input.itemFlatBonus && input.itemFlatBonus.value > 0) {
+  if (input.itemFlatBonus && input.itemFlatBonus.value !== 0) {
     raw += input.itemFlatBonus.value;
     breakdown.push({
       label: input.itemFlatBonus.label,
       value: input.itemFlatBonus.value,
-      type: "bonus",
+      type: input.itemFlatBonus.value > 0 ? "bonus" : "penalty",
     });
   }
 

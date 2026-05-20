@@ -530,6 +530,176 @@ export const EFFECTS: Record<string, EffectMeta> = {
     "Готово. Если дропнешь следующую игру — −2 поинта получишь, но в Тюрьму не пойдёшь.",
   ),
 
+  // ========= INSTANT: +1 заряд случайному предмету в инвентаре =========
+  extra_charge: {
+    effectKey: "extra_charge",
+    class: "INSTANT",
+    apply: async ({ tx, player, invItem }) => {
+      const candidates = await tx.inventoryItem.findMany({
+        where: {
+          playerId: player.id,
+          id: { not: invItem.id },
+          item: { category: { in: ["CONSUMABLE", "EQUIPMENT", "TRAP"] } },
+        },
+        include: { item: true },
+      });
+      if (candidates.length === 0) {
+        return { message: "В инвентаре нечего чинить." };
+      }
+      const target = candidates[Math.floor(Math.random() * candidates.length)];
+      await tx.inventoryItem.update({
+        where: { id: target.id },
+        data: { charges: { increment: 1 } },
+      });
+      return { message: `Починено: «${target.item.name}» теперь имеет +1 заряд.` };
+    },
+  },
+
+  // ========= BUFF: следующее проклятье с колеса не сработает =========
+  curse_immunity: makeMarkerBuff(
+    "curse_immunity",
+    "Под чужой личиной. Следующее проклятье с колеса не пристанет.",
+  ),
+
+  // ========= BUFF: ±2 поинта монеткой на следующей засчитанной игре =========
+  coin_flip_next: {
+    effectKey: "coin_flip_next",
+    class: "BUFF",
+    isUsable: ({ player }) => {
+      const buffs = parseActiveBuffs(player.activeBuffs);
+      return hasBuff(buffs, "coin_flip_next")
+        ? { ok: false, reason: "Монетка уже подкинута" }
+        : { ok: true };
+    },
+    apply: async ({ tx, player, invItem }) => {
+      const delta = Math.random() < 0.5 ? 2 : -2;
+      const buffs = parseActiveBuffs(player.activeBuffs);
+      const next = addBuff(buffs, {
+        effectKey: "coin_flip_next",
+        sourceItemId: invItem.itemId,
+        activatedAt: new Date().toISOString(),
+        payload: { delta },
+      });
+      await tx.player.update({
+        where: { id: player.id },
+        data: { activeBuffs: serializeActiveBuffs(next) },
+      });
+      return {
+        message:
+          delta > 0
+            ? "Монетка — орёл. +2 поинта к следующей засчитанной игре."
+            : "Монетка — решка. −2 поинта от следующей засчитанной игры.",
+        data: { delta },
+      };
+    },
+  },
+
+  // ========= BUFF: ±1 поинт монеткой (малая) =========
+  mini_coin_flip: {
+    effectKey: "mini_coin_flip",
+    class: "BUFF",
+    isUsable: ({ player }) => {
+      const buffs = parseActiveBuffs(player.activeBuffs);
+      return hasBuff(buffs, "mini_coin_flip")
+        ? { ok: false, reason: "Малая монетка уже подкинута" }
+        : { ok: true };
+    },
+    apply: async ({ tx, player, invItem }) => {
+      const delta = Math.random() < 0.5 ? 1 : -1;
+      const buffs = parseActiveBuffs(player.activeBuffs);
+      const next = addBuff(buffs, {
+        effectKey: "mini_coin_flip",
+        sourceItemId: invItem.itemId,
+        activatedAt: new Date().toISOString(),
+        payload: { delta },
+      });
+      await tx.player.update({
+        where: { id: player.id },
+        data: { activeBuffs: serializeActiveBuffs(next) },
+      });
+      return {
+        message: delta > 0 ? "Малая монетка — +1 поинт следующей игре." : "Малая монетка — −1 поинт следующей игры.",
+        data: { delta },
+      };
+    },
+  },
+
+  // ========= BUFF: следующая засчитанная игра — две крутки колеса предметов =========
+  wheel_double_next: makeMarkerBuff(
+    "wheel_double_next",
+    "Шар Всезнания зажат в руке. Следующая засчитанная игра даст ДВЕ крутки колеса.",
+  ),
+
+  // ========= BUFF: следующее перемещение — в ЛЮБОЙ регион, бесплатно =========
+  teleport_next_move: makeMarkerBuff(
+    "teleport_next_move",
+    "Корочка решает всё. Следующее перемещение — в любой регион, без затрат ходов.",
+  ),
+
+  // ========= BUFF: следующий дроп — без Тюрьмы, переход в Хутор =========
+  drop_to_khutor: makeMarkerBuff(
+    "drop_to_khutor",
+    "Гнилые нью-роки на ногах. Если дропнешь следующую игру — окажешься в Хуторе, не в Тюрьме.",
+  ),
+
+  // ========= INSTANT: обмен случайным предметом со случайным игроком =========
+  swap_random_player: {
+    effectKey: "swap_random_player",
+    class: "INSTANT",
+    apply: async ({ tx, player, invItem }) => {
+      // Кандидаты — другие игроки с обмениваемыми предметами
+      const others = await tx.player.findMany({
+        where: { id: { not: player.id }, class: { not: null } },
+        include: {
+          inventory: {
+            where: {
+              item: {
+                category: { in: ["CONSUMABLE", "EQUIPMENT"] },
+                rarity: { not: "LEGENDARY" },
+              },
+            },
+            include: { item: true },
+          },
+        },
+      });
+      const eligible = others.filter((p) => p.inventory.length > 0);
+      if (eligible.length === 0) {
+        return { message: "Менять не с кем — у других пусто." };
+      }
+      const targetPlayer = eligible[Math.floor(Math.random() * eligible.length)];
+      const targetItem =
+        targetPlayer.inventory[Math.floor(Math.random() * targetPlayer.inventory.length)];
+
+      // Свой случайный предмет (НЕ опель — иначе сам себя обменял)
+      const mine = await tx.inventoryItem.findMany({
+        where: {
+          playerId: player.id,
+          id: { not: invItem.id },
+          item: { category: { in: ["CONSUMABLE", "EQUIPMENT"] }, rarity: { not: "LEGENDARY" } },
+        },
+        include: { item: true },
+      });
+      if (mine.length === 0) {
+        return { message: "Тебе нечего предложить взамен — у тебя пусто." };
+      }
+      const myItem = mine[Math.floor(Math.random() * mine.length)];
+
+      // Меняем владельцев
+      await tx.inventoryItem.update({
+        where: { id: myItem.id },
+        data: { playerId: targetPlayer.id },
+      });
+      await tx.inventoryItem.update({
+        where: { id: targetItem.id },
+        data: { playerId: player.id },
+      });
+
+      return {
+        message: `Обмен с ${targetPlayer.nickname}: отдал «${myItem.item.name}», получил «${targetItem.item.name}».`,
+      };
+    },
+  },
+
   // ========= INSTANT: снять случайный дебафф, выдать случайный бафф =========
   debuff_to_buff: {
     effectKey: "debuff_to_buff",

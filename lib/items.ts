@@ -276,11 +276,11 @@ export const ITEMS: ItemDef[] = [
   },
   {
     id: "usb_flashlight",
-    name: "USB Фонарик",
-    description: "Подсветил путь — видишь, что вляпался. Реролл активной игры без штрафа.",
-    category: "CONSUMABLE", rarity: "COMMON",
-    iconKey: "flashlight", effectKey: "reroll_game",
-    charges: 1, rollWeight: 12,
+    name: "Шар Всезнания",
+    description: "Светится знанием изнутри. Следующая засчитанная игра даст ДВЕ крутки колеса предметов.",
+    category: "CONSUMABLE", rarity: "RARE",
+    iconKey: "flashlight", effectKey: "wheel_double_next",
+    charges: 1, rollWeight: 6,
   },
   {
     id: "chamomile_tea",
@@ -295,9 +295,9 @@ export const ITEMS: ItemDef[] = [
   {
     id: "new_iqos",
     name: "Новый айкос",
-    description: "Чище вейпа, дороже совести. +2 хода.",
+    description: "Покрутил, подул — старый предмет оживает. +1 заряд случайному предмету в твоём инвентаре.",
     category: "CONSUMABLE", rarity: "RARE",
-    iconKey: "iqos", effectKey: "add_energy_2",
+    iconKey: "iqos", effectKey: "extra_charge",
     charges: 1, rollWeight: 6,
   },
   {
@@ -359,9 +359,9 @@ export const ITEMS: ItemDef[] = [
   {
     id: "fake_beard_chakhlon",
     name: "Накладная борода Чахлона",
-    description: "Под чужой личиной судьба сговорчивей. Следующее колесо игр — 3 на выбор.",
+    description: "Под чужой личиной даже проклятья тебя не узнают. Следующее проклятье с колеса не пристанет.",
     category: "CONSUMABLE", rarity: "RARE",
-    iconKey: "beard", effectKey: "choose_of_three",
+    iconKey: "beard", effectKey: "curse_immunity",
     charges: 1, rollWeight: 6,
   },
   {
@@ -417,9 +417,9 @@ export const ITEMS: ItemDef[] = [
   {
     id: "kolyan_mandate",
     name: "Мандат Коляна",
-    description: "Корочка решает всё. Выйти из Тюрьмы без прохождения игры.",
+    description: "Корочка решает всё. Следующее перемещение — в ЛЮБОЙ регион, без затрат ходов.",
     category: "CONSUMABLE", rarity: "EPIC",
-    iconKey: "mandate", effectKey: "escape_prison",
+    iconKey: "mandate", effectKey: "teleport_next_move",
     charges: 1, rollWeight: 3,
   },
 
@@ -435,10 +435,10 @@ export const ITEMS: ItemDef[] = [
   {
     id: "rusnyak_opel",
     name: "Нищий опель Ильи Русняка",
-    description: "Едет на честном слове, но едет. Перемещения по карте −1 ход.",
-    category: "EQUIPMENT", rarity: "EPIC",
-    iconKey: "opel", effectKey: "cheap_move",
-    charges: 99, rollWeight: 3,
+    description: "Подъехал к рандомному путнику и сторговался. Обмен случайным предметом со случайным игроком (легендарки и косметика не трогаются).",
+    category: "CONSUMABLE", rarity: "EPIC",
+    iconKey: "opel", effectKey: "swap_random_player",
+    charges: 1, rollWeight: 3,
   },
 
   // ----- Ловушки колеса -----
@@ -495,9 +495,9 @@ export const ITEMS: ItemDef[] = [
   {
     id: "cap_backwards",
     name: "Кепка назад",
-    description: "Надел задом наперёд — и попёрло. +2 поинта следующей игре.",
+    description: "Поставил кепку, кинул монетку. ±1 поинт (50/50) к следующей засчитанной игре.",
     category: "CONSUMABLE", rarity: "COMMON",
-    iconKey: "cap", effectKey: "points_next_2",
+    iconKey: "cap", effectKey: "mini_coin_flip",
     charges: 1, rollWeight: 11,
   },
   {
@@ -519,17 +519,17 @@ export const ITEMS: ItemDef[] = [
   {
     id: "gorgonit_hoodie",
     name: "Худи Горгонит",
-    description: "Морда твари на груди внушает. +3 поинта следующей игре.",
+    description: "Подбросил монетку на удачу. ±2 поинта (50/50) к следующей засчитанной игре.",
     category: "CONSUMABLE", rarity: "RARE",
-    iconKey: "hoodie", effectKey: "points_next_3",
+    iconKey: "hoodie", effectKey: "coin_flip_next",
     charges: 1, rollWeight: 6,
   },
   {
     id: "rotten_newrocks",
     name: "Гнилые нью-роки",
-    description: "Тяжёлые ботинки держат на ногах. Раз в сезон отменяют один дроп.",
-    category: "EQUIPMENT", rarity: "EPIC",
-    iconKey: "boots_dark", effectKey: "prevent_drop",
+    description: "Эти ботинки знают дорогу домой. Следующий дроп закинет тебя в Хутор Душлендора вместо Тюрьмы (−2 поинта всё равно).",
+    category: "CONSUMABLE", rarity: "EPIC",
+    iconKey: "boots_dark", effectKey: "drop_to_khutor",
     charges: 1, rollWeight: 3,
   },
 

@@ -61,6 +61,25 @@ export async function POST(req: Request) {
     );
   }
 
+  // Мандат Коляна — телепорт в ЛЮБОЙ регион без затрат ходов и без проверки соседей
+  const earlyBuffs = parseActiveBuffs(player.activeBuffs);
+  if (hasBuff(earlyBuffs, "teleport_next_move")) {
+    const consumed = removeBuff(earlyBuffs, "teleport_next_move");
+    const updated = await prisma.player.update({
+      where: { userId },
+      data: {
+        currentRegion: regionId,
+        activeBuffs: serializeActiveBuffs(consumed),
+      },
+    });
+    return NextResponse.json({
+      success: true,
+      player: updated,
+      cost: 0,
+      teleport: true,
+    });
+  }
+
   // Проверяем возможность перехода
   const moveCheck = canMoveBetween(player.currentRegion, regionId);
 

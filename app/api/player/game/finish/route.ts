@@ -213,11 +213,22 @@ export async function POST(req: Request) {
       ).length;
       luckyLoserBonus = Math.min(6, debuffCount);
     }
-    const flatBonus = catchUpBonus + luckyLoserBonus;
-    if (flatBonus > 0) {
+    // Монетки — читаем payload.delta из баффа
+    let coinDelta = 0;
+    const coinBuff = buffs.find((b) => b.effectKey === "coin_flip_next");
+    if (coinBuff && typeof coinBuff.payload?.delta === "number") {
+      coinDelta += coinBuff.payload.delta;
+    }
+    const miniCoinBuff = buffs.find((b) => b.effectKey === "mini_coin_flip");
+    if (miniCoinBuff && typeof miniCoinBuff.payload?.delta === "number") {
+      coinDelta += miniCoinBuff.payload.delta;
+    }
+    const flatBonus = catchUpBonus + luckyLoserBonus + coinDelta;
+    if (flatBonus !== 0) {
       const parts: string[] = [];
       if (catchUpBonus > 0) parts.push(`догоняешь лидера +${catchUpBonus}`);
       if (luckyLoserBonus > 0) parts.push(`удачник-неудачник +${luckyLoserBonus}`);
+      if (coinDelta !== 0) parts.push(`монетка ${coinDelta > 0 ? "+" : ""}${coinDelta}`);
       itemFlatBonus = { label: `Бафф: ${parts.join(", ")}`, value: flatBonus };
     }
 
@@ -271,6 +282,8 @@ export async function POST(req: Request) {
     // Догоняющие баффы сжигаем после применения
     if (hasBuff(buffs, "catch_up_bonus")) updatedBuffs = removeBuff(updatedBuffs, "catch_up_bonus");
     if (hasBuff(buffs, "lucky_loser")) updatedBuffs = removeBuff(updatedBuffs, "lucky_loser");
+    if (hasBuff(buffs, "coin_flip_next")) updatedBuffs = removeBuff(updatedBuffs, "coin_flip_next");
+    if (hasBuff(buffs, "mini_coin_flip")) updatedBuffs = removeBuff(updatedBuffs, "mini_coin_flip");
     const buffsJson =
       updatedBuffs.length !== buffs.length
         ? serializeActiveBuffs(updatedBuffs)
@@ -380,33 +393,43 @@ export async function POST(req: Request) {
       },
     });
 
-    // Бафф «Накладная борода» — этот дроп не отправляет в Тюрьму
-    const dropBuffsAll = parseActiveBuffs(player.activeBuffs);
-    const dodgePrison = hasBuff(dropBuffsAll, "no_prison_next_drop");
-    const dropBuffsAfter = dodgePrison
-      ? removeBuff(dropBuffsAll, "no_prison_next_drop")
-      : dropBuffsAll;
+    // Дроп-баффы: «Накладная борода» (остаёшься на месте) и «Гнилые нью-роки» (в Хутор)
+    let dropBuffsList = parseActiveBuffs(player.activeBuffs);
+    const dodgePrison = hasBuff(dropBuffsList, "no_prison_next_drop");
+    const goToKhutor = !dodgePrison && hasBuff(dropBuffsList, "drop_to_khutor");
+    let regionOverride: string | null = null;
+    if (dodgePrison) {
+      dropBuffsList = removeBuff(dropBuffsList, "no_prison_next_drop");
+    } else if (goToKhutor) {
+      dropBuffsList = removeBuff(dropBuffsList, "drop_to_khutor");
+      regionOverride = "khutor";
+    }
+    const dropBuffsChanged = dodgePrison || goToKhutor;
+    const goesToPrison = !dodgePrison && !goToKhutor;
 
     await prisma.player.update({
       where: { id: player.id },
       data: {
         activeGameId: null,
         points: { increment: POINTS_DROP_PENALTY },
-        ...(dodgePrison
-          ? {}
-          : { currentRegion: PRISON_REGION_ID, inPrison: true }),
-        ...(dodgePrison
-          ? { activeBuffs: serializeActiveBuffs(dropBuffsAfter) }
+        ...(goesToPrison
+          ? { currentRegion: PRISON_REGION_ID, inPrison: true }
+          : regionOverride
+            ? { currentRegion: regionOverride, inPrison: false }
+            : {}),
+        ...(dropBuffsChanged
+          ? { activeBuffs: serializeActiveBuffs(dropBuffsList) }
           : {}),
       },
     });
 
     return NextResponse.json({
       success: true,
-      sentToPrison: !dodgePrison,
-      stayedInPrison: wasInPrison && !dodgePrison,
+      sentToPrison: goesToPrison,
+      stayedInPrison: wasInPrison && goesToPrison,
       pointsLost: Math.abs(POINTS_DROP_PENALTY),
       dodgedPrison: dodgePrison,
+      movedTo: regionOverride,
     });
   }
 }

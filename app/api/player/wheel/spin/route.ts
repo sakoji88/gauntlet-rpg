@@ -168,6 +168,25 @@ export async function POST(req: Request) {
 
   chosen = rollOne();
 
+  // Иммунитет к проклятьям — Накладная борода Чахлона. Если выпало проклятье и
+  // на игроке висит curse_immunity — сжигаем иммунитет и переролим до НЕ-проклятья.
+  const hasCurseImmunity = hasBuff(playerBuffs, "curse_immunity");
+  if (chosen.effectKey?.startsWith("curse_") && hasCurseImmunity) {
+    let tries = 0;
+    while (chosen.effectKey?.startsWith("curse_") && tries < 30) {
+      chosen = rollOne();
+      tries++;
+    }
+    const consumed = removeBuff(playerBuffs, "curse_immunity");
+    await prisma.player.update({
+      where: { id: player.id },
+      data: { activeBuffs: serializeActiveBuffs(consumed) },
+    });
+    // обновляем локальный список баффов чтобы дальнейшие проверки видели актуальное
+    playerBuffs.length = 0;
+    playerBuffs.push(...consumed);
+  }
+
   // ПРОКЛЯТЬЕ — предмет в инвентарь НЕ попадает, дебафф применяется сразу.
   if (chosen.effectKey?.startsWith("curse_")) {
     let cursedBuffs = playerBuffs;
@@ -233,14 +252,44 @@ export async function POST(req: Request) {
   }
 
   // Выдаём предмет
-  const inv = await prisma.inventoryItem.create({
+  await prisma.inventoryItem.create({
     data: {
       playerId: player.id,
       itemId: chosen.id,
       charges: chosen.charges,
     },
-    include: { item: true },
   });
+
+  // Шар Всезнания — вторая крутка одной кнопкой, если есть место в инвентаре.
+  // Проклятья на второй крутке не выдаём.
+  let bonusItem: typeof chosen | null = null;
+  const hasWheelDouble = hasBuff(playerBuffs, "wheel_double_next");
+  if (hasWheelDouble) {
+    const invCountNow = await prisma.inventoryItem.count({ where: { playerId: player.id } });
+    let consumedBuffs = removeBuff(playerBuffs, "wheel_double_next");
+    if (invCountNow < INVENTORY_LIMIT) {
+      let second = rollOne();
+      let tries = 0;
+      while (second.effectKey?.startsWith("curse_") && tries < 30) {
+        second = rollOne();
+        tries++;
+      }
+      if (!second.effectKey?.startsWith("curse_")) {
+        await prisma.inventoryItem.create({
+          data: {
+            playerId: player.id,
+            itemId: second.id,
+            charges: second.charges,
+          },
+        });
+        bonusItem = second;
+      }
+    }
+    await prisma.player.update({
+      where: { id: player.id },
+      data: { activeBuffs: serializeActiveBuffs(consumedBuffs) },
+    });
+  }
 
   // Помечаем игру как "колесо крутилось"
   await prisma.game.update({
@@ -259,5 +308,15 @@ export async function POST(req: Request) {
       rarity: chosen.rarity,
       iconKey: chosen.iconKey,
     },
+    bonusItem: bonusItem
+      ? {
+          id: bonusItem.id,
+          name: bonusItem.name,
+          description: bonusItem.description,
+          category: bonusItem.category,
+          rarity: bonusItem.rarity,
+          iconKey: bonusItem.iconKey,
+        }
+      : null,
   });
 }
