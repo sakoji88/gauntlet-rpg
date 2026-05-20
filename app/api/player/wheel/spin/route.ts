@@ -169,27 +169,38 @@ export async function POST(req: Request) {
   chosen = rollOne();
 
   // ПРОКЛЯТЬЕ — предмет в инвентарь НЕ попадает, дебафф применяется сразу.
-  if (chosen.effectKey === "curse_energy" || chosen.effectKey === "curse_points") {
+  if (chosen.effectKey?.startsWith("curse_")) {
     let cursedBuffs = playerBuffs;
     if (hasLuckyRoll) cursedBuffs = removeBuff(cursedBuffs, "lucky_roll");
     if (hasChooseOfThree) cursedBuffs = removeBuff(cursedBuffs, "choose_of_three");
-    if (chosen.effectKey === "curse_points") {
-      // дебафф −2 поинта на следующей засчитанной игре (как ловушка Шаурмы)
+
+    // Самобафы дебаффов — кладём ловушечные buffKey на самого себя
+    const selfBuff = (key: string, magnitude: number) => {
       cursedBuffs = addBuff(cursedBuffs, {
-        effectKey: "trap_points",
+        effectKey: key,
         sourceItemId: chosen.id,
         activatedAt: new Date().toISOString(),
-        payload: { magnitude: 2 },
+        payload: { magnitude },
       });
+    };
+    if (chosen.effectKey === "curse_points") selfBuff("trap_points", 2);
+    if (chosen.effectKey === "curse_slow") selfBuff("trap_slow", 1);
+    if (chosen.effectKey === "curse_extra_cost") selfBuff("trap_extra_cost", 1);
+
+    // Прямые правки счётчиков
+    const directUpdates: Record<string, unknown> = {
+      activeBuffs: serializeActiveBuffs(cursedBuffs),
+    };
+    if (chosen.effectKey === "curse_energy") {
+      directUpdates.energy = Math.max(0, player.energy - 1);
     }
+    if (chosen.effectKey === "curse_gold") {
+      directUpdates.gold = Math.max(0, player.gold - 10);
+    }
+
     await prisma.player.update({
       where: { id: player.id },
-      data: {
-        activeBuffs: serializeActiveBuffs(cursedBuffs),
-        ...(chosen.effectKey === "curse_energy"
-          ? { energy: Math.max(0, player.energy - 1) }
-          : {}),
-      },
+      data: directUpdates,
     });
     await prisma.game.update({
       where: { id: game.id },

@@ -203,7 +203,7 @@ export const ITEMS: ItemDef[] = [
   {
     id: "rotten_vape",
     name: "Гнилой вейп",
-    description: "Дешёвая палёная дрянь. Закашлялся в хлам. ☠ ДЕБАФФ: −1 ход сразу.",
+    description: "Палёная дрянь, закашлялся в хлам. ☠ ДЕБАФФ (сразу с колеса): −1 ход.",
     category: "CONSUMABLE", rarity: "COMMON",
     iconKey: "vape", effectKey: "curse_energy",
     charges: 1, rollWeight: 10,
@@ -211,26 +211,26 @@ export const ITEMS: ItemDef[] = [
   {
     id: "balanda",
     name: "Баланда",
-    description: "Тюремная похлёбка. Мерзко, но сытно. +1 ход.",
+    description: "Тюремная похлёбка тяжёлая, ноги волочишь. ☠ ДЕБАФФ (сразу с колеса): +1 ход на следующее перемещение по карте.",
     category: "CONSUMABLE", rarity: "COMMON",
-    iconKey: "bowl", effectKey: "add_energy_1",
-    charges: 1, rollWeight: 14,
+    iconKey: "bowl", effectKey: "curse_slow",
+    charges: 1, rollWeight: 10,
   },
   {
     id: "dushik_food_pot",
     name: "Едальный горшок Душика",
-    description: "На дне что-то ещё шевелится. Доел — поумнел. +25 опыта.",
+    description: "Объелся, не пошевелиться. ☠ ДЕБАФФ (сразу с колеса): +1 ход на следующее действие.",
     category: "CONSUMABLE", rarity: "COMMON",
-    iconKey: "pot", effectKey: "gain_exp_25",
-    charges: 1, rollWeight: 13,
+    iconKey: "pot", effectKey: "curse_extra_cost",
+    charges: 1, rollWeight: 10,
   },
   {
     id: "chebupizza",
     name: "Чебупицца",
-    description: "Гибрид чебурека и пиццы. Богомерзко. +1 ход.",
+    description: "Спустил последнее на эту мерзость. ☠ ДЕБАФФ (сразу с колеса): −10 Злата.",
     category: "CONSUMABLE", rarity: "COMMON",
-    iconKey: "pizza", effectKey: "add_energy_1",
-    charges: 1, rollWeight: 14,
+    iconKey: "pizza", effectKey: "curse_gold",
+    charges: 1, rollWeight: 10,
   },
 
   // ----- COMMON расходники: опыт / Злато / реролл / очистка -----
@@ -245,15 +245,15 @@ export const ITEMS: ItemDef[] = [
   {
     id: "linusik_menstra",
     name: "Менстра Линусика",
-    description: "Не спрашивай. Просто +25 опыта.",
+    description: "Не спрашивай. Стошнило, мир кружится. ☠ ДЕБАФФ (сразу с колеса): −2 поинта на следующей засчитанной игре.",
     category: "CONSUMABLE", rarity: "COMMON",
-    iconKey: "vial_red", effectKey: "gain_exp_25",
-    charges: 1, rollWeight: 13,
+    iconKey: "vial_red", effectKey: "curse_points",
+    charges: 1, rollWeight: 10,
   },
   {
     id: "nuggets_spoiled",
     name: "9 нагетсов скисло",
-    description: "Восемь съел, девятый — урок жизни. ☠ ДЕБАФФ: −2 поинта на следующей засчитанной игре.",
+    description: "Восемь съел, девятый — урок жизни. ☠ ДЕБАФФ (сразу с колеса): −2 поинта на следующей засчитанной игре.",
     category: "CONSUMABLE", rarity: "COMMON",
     iconKey: "nuggets", effectKey: "curse_points",
     charges: 1, rollWeight: 10,
@@ -261,10 +261,10 @@ export const ITEMS: ItemDef[] = [
   {
     id: "sold_cheap",
     name: "Продал подешевле",
-    description: "Продешевил, но хоть что-то выручил. +10 Злата.",
+    description: "Продешевил по-крупному, в кармане дыра. ☠ ДЕБАФФ (сразу с колеса): −10 Злата.",
     category: "CONSUMABLE", rarity: "COMMON",
-    iconKey: "coin", effectKey: "gain_gold_10",
-    charges: 1, rollWeight: 13,
+    iconKey: "coin", effectKey: "curse_gold",
+    charges: 1, rollWeight: 10,
   },
   {
     id: "bought_expensive",
@@ -303,9 +303,9 @@ export const ITEMS: ItemDef[] = [
   {
     id: "basket_24_wings",
     name: "Баскет 24 крыльев",
-    description: "Нажрался до отвала — прёт энергия. +2 хода.",
+    description: "Нажрался — ноги сами понесли. Следующее перемещение по карте бесплатное.",
     category: "CONSUMABLE", rarity: "RARE",
-    iconKey: "wings", effectKey: "add_energy_2",
+    iconKey: "wings", effectKey: "free_move",
     charges: 1, rollWeight: 6,
   },
   {
@@ -319,9 +319,9 @@ export const ITEMS: ItemDef[] = [
   {
     id: "ny_cheesecake",
     name: "Чизкейк Нью-Йорк",
-    description: "Сладко на душе — играется веселей. +3 поинта следующей игре.",
+    description: "Угостил Романала — тот разомлел. Следующая засчитанная игра даст ×2 Злата.",
     category: "CONSUMABLE", rarity: "RARE",
-    iconKey: "cheesecake", effectKey: "points_next_3",
+    iconKey: "cheesecake", effectKey: "gold_double_next",
     charges: 1, rollWeight: 6,
   },
   {
@@ -335,9 +335,9 @@ export const ITEMS: ItemDef[] = [
   {
     id: "popov_balcony",
     name: "Разьёбанный балкон Попова",
-    description: "Сдал хлам с балкона на металл. +25 Злата.",
+    description: "Сидишь высоко, ловушки летят мимо. Первая брошенная в тебя ловушка не сработает.",
     category: "CONSUMABLE", rarity: "RARE",
-    iconKey: "scrap", effectKey: "gain_gold_25",
+    iconKey: "scrap", effectKey: "protect_from_trap",
     charges: 1, rollWeight: 6,
   },
   {
@@ -393,17 +393,17 @@ export const ITEMS: ItemDef[] = [
   {
     id: "lyrica",
     name: "Лирика",
-    description: "Мир поплыл, поинты — в радость. +5 поинтов следующей игре.",
+    description: "Мир поплыл, говоришь с NPC задушевно. Следующий выполненный квест даёт ×2 поинтов.",
     category: "CONSUMABLE", rarity: "EPIC",
-    iconKey: "pills", effectKey: "points_next_5",
+    iconKey: "pills", effectKey: "quest_double_next",
     charges: 1, rollWeight: 3,
   },
   {
     id: "burmaldi",
     name: "Бурмалди",
-    description: "Что это — никто не знает. Но работает. +5 поинтов следующей игре.",
+    description: "Никто не знает что это, но продаётся за конский ценник. +50 Злата.",
     category: "CONSUMABLE", rarity: "EPIC",
-    iconKey: "burmaldi", effectKey: "points_next_5",
+    iconKey: "burmaldi", effectKey: "gain_gold_50",
     charges: 1, rollWeight: 3,
   },
   {

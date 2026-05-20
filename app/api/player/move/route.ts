@@ -97,6 +97,14 @@ export async function POST(req: Request) {
     updatedBuffs = removeBuff(updatedBuffs, "trap_extra_cost");
     trapsApplied.push("Липкая Жижа");
   }
+
+  // Бафф «Баскет 24 крыльев» — следующее перемещение бесплатное (после всех штрафов)
+  const usedFreeMove = hasBuff(buffs, "free_move");
+  if (usedFreeMove) {
+    finalCost = 0;
+    updatedBuffs = removeBuff(updatedBuffs, "free_move");
+  }
+
   const buffsChanged = updatedBuffs.length !== buffs.length;
 
   if (player.energy < finalCost) {

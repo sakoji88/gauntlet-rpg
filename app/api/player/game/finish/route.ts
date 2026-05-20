@@ -236,6 +236,9 @@ export async function POST(req: Request) {
     for (const key of ["points_next_2", "points_next_3", "points_next_5", "points_mult_next"]) {
       if (hasBuff(buffs, key)) updatedBuffs = removeBuff(updatedBuffs, key);
     }
+    // Бафф ×2 Злата на следующую игру — сжигаем здесь, эффект применяется ниже
+    const goldDoubleActive = hasBuff(buffs, "gold_double_next");
+    if (goldDoubleActive) updatedBuffs = removeBuff(updatedBuffs, "gold_double_next");
     const buffsJson =
       updatedBuffs.length !== buffs.length
         ? serializeActiveBuffs(updatedBuffs)
@@ -262,7 +265,8 @@ export async function POST(req: Request) {
     // Пассивка Базара — +2 Злата если игрок засчитал игру стоя в Базаре.
     const hasGoldFind = await hasPassiveEffect(player.id, "passive_gold_find");
     const bazarBonus = player.currentRegion === "bazar" ? 2 : 0;
-    const goldGain = GOLD_PER_COMPLETION + (hasGoldFind ? 2 : 0) + bazarBonus;
+    let goldGain = GOLD_PER_COMPLETION + (hasGoldFind ? 2 : 0) + bazarBonus;
+    if (goldDoubleActive) goldGain *= 2; // Чизкейк Нью-Йорк
 
     await prisma.player.update({
       where: { id: player.id },
@@ -396,6 +400,9 @@ async function applyQuestProgress(
   const player = await prisma.player.findUnique({ where: { id: playerId } });
   if (!player) return [];
 
+  // Бафф «следующий квест ×2 поинтов» — Лирика. Сжигается на ПЕРВОМ выполненном квесте.
+  let questDoubleAvailable = hasBuff(parseActiveBuffs(player.activeBuffs), "quest_double_next");
+
   const logs: QuestUpdateLog[] = [];
 
   for (const quest of activeQuests) {
@@ -422,7 +429,23 @@ async function applyQuestProgress(
       const rewards = parseQuestRewards(quest.rewards);
       const bardBonus = player.class === "bard" ? 2 : 0;
       const charismaBonus = Math.floor(player.charisma / 6);
-      const totalPoints = rewards.points + bardBonus + charismaBonus;
+      let totalPoints = rewards.points + bardBonus + charismaBonus;
+
+      // Если активен бафф quest_double_next — удваиваем (один раз)
+      if (questDoubleAvailable) {
+        totalPoints *= 2;
+        questDoubleAvailable = false;
+        // Сжигаем бафф в БД
+        const freshBuffs = parseActiveBuffs(
+          (await prisma.player.findUnique({ where: { id: playerId }, select: { activeBuffs: true } }))
+            ?.activeBuffs ?? null,
+        );
+        const after = removeBuff(freshBuffs, "quest_double_next");
+        await prisma.player.update({
+          where: { id: playerId },
+          data: { activeBuffs: serializeActiveBuffs(after) },
+        });
+      }
 
       // Выдаём предмет, если он есть в наградах.
       // Особый случай: Сосуд Перова уникален — если уже есть, даём +10 поинтов компенсации.

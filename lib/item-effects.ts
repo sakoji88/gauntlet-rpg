@@ -471,7 +471,69 @@ export const EFFECTS: Record<string, EffectMeta> = {
       };
     },
   },
+
+  // ========= INSTANT: +50 Злата =========
+  gain_gold_50: {
+    effectKey: "gain_gold_50",
+    class: "INSTANT",
+    apply: async ({ tx, player }) => {
+      await tx.player.update({
+        where: { id: player.id },
+        data: { gold: { increment: 50 } },
+      });
+      return { message: "+50 Злата в кошель." };
+    },
+  },
+
+  // ========= BUFF: следующее перемещение бесплатно =========
+  free_move: makeMarkerBuff("free_move", "Готово. Следующее перемещение по карте — бесплатное."),
+
+  // ========= BUFF: следующая игра даёт ×2 Злата =========
+  gold_double_next: makeMarkerBuff(
+    "gold_double_next",
+    "Готово. Следующая засчитанная игра даст ×2 Злата.",
+  ),
+
+  // ========= BUFF: следующий квест даёт ×2 поинтов =========
+  quest_double_next: makeMarkerBuff(
+    "quest_double_next",
+    "Готово. Следующий выполненный квест даст ×2 поинтов.",
+  ),
+
+  // ========= BUFF: первая ловушка на тебе будет погашена =========
+  protect_from_trap: makeMarkerBuff(
+    "protect_from_trap",
+    "Защита надета. Первая брошенная в тебя ловушка не сработает.",
+  ),
 };
+
+// Универсальная фабрика BUFF-маркеров — кладёт бафф в Player.activeBuffs,
+// потребители (роуты move/finish/throw) сами проверяют и сжигают.
+function makeMarkerBuff(effectKey: string, message: string): EffectMeta {
+  return {
+    effectKey,
+    class: "BUFF",
+    isUsable: ({ player }) => {
+      const buffs = parseActiveBuffs(player.activeBuffs);
+      return hasBuff(buffs, effectKey)
+        ? { ok: false, reason: "Такой бафф уже активен" }
+        : { ok: true };
+    },
+    apply: async ({ tx, player, invItem }) => {
+      const buffs = parseActiveBuffs(player.activeBuffs);
+      const next = addBuff(buffs, {
+        effectKey,
+        sourceItemId: invItem.itemId,
+        activatedAt: new Date().toISOString(),
+      });
+      await tx.player.update({
+        where: { id: player.id },
+        data: { activeBuffs: serializeActiveBuffs(next) },
+      });
+      return { message };
+    },
+  };
+}
 
 // Фабрика BUFF-эффекта «+N поинтов следующей игре».
 // Бафф ловится и сжигается в finish/route.ts на complete.

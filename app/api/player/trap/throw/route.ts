@@ -5,6 +5,7 @@ import {
   parseActiveBuffs,
   serializeActiveBuffs,
   addBuff,
+  removeBuff,
   hasBuff,
 } from "@/lib/active-buffs";
 import { getTrapByItemId } from "@/lib/trap-effects";
@@ -91,6 +92,40 @@ export async function POST(req: Request) {
       { error: "У цели уже висит такая ловушка" },
       { status: 400 },
     );
+  }
+
+  // Защита «Разьёбанный балкон Попова» — гасит первую брошенную ловушку.
+  // Предмет-ловушка у атакующего тратится, у цели сжигается защитный бафф,
+  // но саму ловушку не вешаем.
+  const protectedByBalcony = hasBuff(targetBuffs, "protect_from_trap");
+  if (protectedByBalcony) {
+    await prisma.$transaction(async (tx) => {
+      if (invItem.charges <= 1) {
+        await tx.inventoryItem.delete({ where: { id: invItem.id } });
+      } else {
+        await tx.inventoryItem.update({
+          where: { id: invItem.id },
+          data: { charges: { decrement: 1 } },
+        });
+      }
+      const cleanedBuffs = removeBuff(targetBuffs, "protect_from_trap");
+      await tx.player.update({
+        where: { id: target.id },
+        data: { activeBuffs: serializeActiveBuffs(cleanedBuffs) },
+      });
+      const energyCostPre = player.class === "urka" ? 0 : 1;
+      if (energyCostPre > 0) {
+        await tx.player.update({
+          where: { id: player.id },
+          data: { energy: { decrement: energyCostPre } },
+        });
+      }
+    });
+    return NextResponse.json({
+      success: true,
+      message: `«${trap.name}» отскочила от защиты ${target.nickname}.`,
+      blocked: true,
+    });
   }
 
   // Цена в ходах: 0 для Урки (Ловкие Пальцы), 1 для остальных
