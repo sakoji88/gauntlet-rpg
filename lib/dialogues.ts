@@ -164,19 +164,64 @@ export const DIALOGUES: DialogueTemplate[] = [
   {
     id: "atelye_d1",
     npcRegion: "atelye",
-    prompt: "Что у тебя за обувь? Опиши.",
+    prompt: "ну че, дрип у тебя ваще как? базарь.",
     choices: [
-      { text: "Лучшее, что было в шкафу", attitudeDelta: +5, response: "Хех! Тщеславие — это уже искусство!" },
-      { text: "Просто кеды, какая разница", attitudeDelta: -10, response: "О, ужас... отойди, ты пачкаешь мне пол." },
+      { text: "ща как у тебя — пик", attitudeDelta: +5, response: "база. братан в теме." },
+      { text: "ваще не парюсь", attitudeDelta: -5, response: "питуууух. соевый ваще." },
     ],
   },
   {
     id: "atelye_d2",
     npcRegion: "atelye",
-    prompt: "Срочный вопрос — индиго или ультрамарин для финального штриха?",
+    prompt: "слышь, бабос есть? моти новые подъехали, надо втарить.",
     choices: [
-      { text: "Индиго", attitudeDelta: +5, response: "О-о-о, у тебя ЕСТЬ вкус! Спасён мой манекен!" },
-      { text: "Это одно и то же", attitudeDelta: -15, response: "Я с тобой больше не общаюсь. Уходи." },
+      { text: "ну так, есть немного", attitudeDelta: +5, response: "найс заебись. может скинешься на крой." },
+      { text: "не банк я тебе", attitudeDelta: -5, response: "ой бляя, опять нищ. ладно проходи." },
+    ],
+  },
+  {
+    id: "atelye_d3",
+    npcRegion: "atelye",
+    prompt: "слышь, ты ж знаешь Душлендора. чо за тип ваще?",
+    choices: [
+      { text: "норм мужик", attitudeDelta: 0, response: "ну база. жаль на стиле не шарит." },
+      { text: "питух чисто", attitudeDelta: +10, response: "ПХВХАХАХ ну ты ваще угар. точно сечёшь." },
+    ],
+  },
+  {
+    id: "atelye_d4",
+    npcRegion: "atelye",
+    prompt: "а ну глянь, новый дрип подъехал. как тебе?",
+    choices: [
+      { text: "пик ваще", attitudeDelta: +5, response: "ну база. с стор оч здравый магаз кстати." },
+      { text: "впопиум какой-то", attitudeDelta: -5, response: "ой ну ты ВАЩЕ. соевые петухи в обморок упали бы." },
+    ],
+  },
+  {
+    id: "atelye_d5",
+    npcRegion: "atelye",
+    prompt: "на тебе шмотка прям на плотных ногах фитит. сам шил?",
+    choices: [
+      { text: "не, нашёл", attitudeDelta: 0, response: "ну тож вариант. главное соус есть." },
+      { text: "у тебя ж и купил", attitudeDelta: +10, response: "ПХАХАХА точно базар. брат." },
+    ],
+  },
+  {
+    id: "atelye_d6",
+    npcRegion: "atelye",
+    prompt: "слышь, артем бойко тебя в чс кинул, не?",
+    choices: [
+      { text: "не, мы кореша", attitudeDelta: +5, response: "найс. ну то такое, мы то тащим в светлое будущее." },
+      { text: "да, и хорошо", attitudeDelta: -5, response: "ой бляя. ну ладно ты вообще ничего не сечёшь." },
+    ],
+  },
+  {
+    id: "atelye_d7",
+    npcRegion: "atelye",
+    prompt: "*показывает рваный край ткани* пик материал или хуйня?",
+    choices: [
+      { text: "пик", attitudeDelta: +10, response: "АХУЕННО. братан врубаешься." },
+      { text: "хуйня", attitudeDelta: -10, response: "ну ты соевый чувак. отойди от ткани." },
     ],
   },
 ];

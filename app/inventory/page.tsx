@@ -11,8 +11,6 @@ import { parseActiveBuffs } from "@/lib/active-buffs";
 import { getTrapByItemId } from "@/lib/trap-effects";
 import UseItemButton from "./UseItemButton";
 import ThrowTrapButton from "./TrapCard";
-import EquipButton from "./EquipButton";
-import { isFrameItem, isTitleItem } from "@/lib/cosmetics";
 
 const INVENTORY_LIMIT = 6;
 
@@ -162,8 +160,6 @@ export default async function InventoryPage() {
               invItem={slot}
               targets={targets}
               isUrka={isUrka}
-              equippedFrameId={player.equippedFrameId}
-              equippedTitleId={player.equippedTitleId}
             />
           );
         })}
@@ -209,14 +205,10 @@ function ItemCard({
   invItem,
   targets,
   isUrka,
-  equippedFrameId,
-  equippedTitleId,
 }: {
   invItem: any;
   targets: any[];
   isUrka: boolean;
-  equippedFrameId: string | null;
-  equippedTitleId: string | null;
 }) {
   const item = invItem.item;
   const colors = RARITY_COLORS[item.rarity as ItemRarity];
@@ -317,32 +309,19 @@ function ItemCard({
             color={colors.text}
           />
         ) : item.category === "COSMETIC" ? (
-          isFrameItem(item.id) || isTitleItem(item.id) ? (
-            <EquipButton
-              itemId={item.id}
-              slot={isFrameItem(item.id) ? "frame" : "title"}
-              isEquipped={
-                isFrameItem(item.id)
-                  ? equippedFrameId === item.id
-                  : equippedTitleId === item.id
-              }
-              color={colors.text}
-            />
-          ) : (
-            <div style={{
-              width: "100%",
-              padding: "0.5rem",
-              color: "var(--color-text-dim)",
-              border: "1px dashed var(--color-border)",
-              fontSize: "0.7rem",
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              textAlign: "center",
-              fontStyle: "italic",
-            }}>
-              Косметика — в коллекции
-            </div>
-          )
+          <div style={{
+            width: "100%",
+            padding: "0.5rem",
+            color: "var(--color-text-dim)",
+            border: "1px dashed var(--color-border)",
+            fontSize: "0.7rem",
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            textAlign: "center",
+            fontStyle: "italic",
+          }}>
+            Косметика — в коллекции
+          </div>
         ) : (
           <div style={{
             width: "100%",

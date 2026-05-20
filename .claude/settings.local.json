@@ -19,7 +19,11 @@
       "Bash(sed -n '62,78p' app/duels/page.tsx)",
       "Bash(sed -n '94,110p' app/shop/ShopView.tsx)",
       "Bash(sed -n '53,68p' app/codex/CodexView.tsx)",
-      "Bash(sed -n '65,74p' \"app/player/[id]/page.tsx\")"
+      "Bash(sed -n '65,74p' \"app/player/[id]/page.tsx\")",
+      "Bash(ls -la \"/c/Users/PC/Downloads/Telegram Desktop/ChatExport_2026-05-20/\" 2>&1 | head -20)",
+      "Bash(grep -oE 'class=\"from_name[^>]*>[^<]{1,60}' \"/c/Users/PC/Downloads/Telegram Desktop/ChatExport_2026-05-20/messages17.html\")",
+      "Bash(node scripts/extract-vanek.js)",
+      "Bash(git reset *)"
     ]
   }
 }

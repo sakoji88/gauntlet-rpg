@@ -324,15 +324,6 @@ export default function RegionView({
                 />
               )}
 
-              {region.id === "atelye" && (
-                <ActionCard
-                  icon={<Sparkles size={20} />}
-                  title="Кастомизация"
-                  subtitle="Примерить рамки и титулы"
-                  color={region.accentColor}
-                  onClick={() => router.push("/customization")}
-                />
-              )}
             </div>
           </div>
 

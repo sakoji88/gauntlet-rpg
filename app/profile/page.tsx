@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import PageBackdrop from "@/app/components/PageBackdrop";
 import Avatar from "@/app/components/Avatar";
-import { getTitleText } from "@/lib/cosmetics";
 import { Flame, Shield, MapPin, BookMarked, Package, Scroll, Swords, Crown, Skull } from "lucide-react";
 import ActiveGamePanel from "./ActiveGamePanel";
 import ClassActionPanel from "./ClassActionPanel";
@@ -254,7 +253,6 @@ export default async function ProfilePage() {
               <Avatar
                 src={dbUser?.image ?? user.image}
                 size={100}
-                frameId={player?.equippedFrameId}
                 alt="Аватар"
               />
               {isAdmin && (
@@ -277,20 +275,9 @@ export default async function ProfilePage() {
             </div>
           )}
           <div>
-            <h2 style={{ marginBottom: getTitleText(player?.equippedTitleId) ? "0.15rem" : "0.5rem" }}>
+            <h2 style={{ marginBottom: "0.5rem" }}>
               {player?.nickname || user.name}
             </h2>
-            {getTitleText(player?.equippedTitleId) && (
-              <div style={{
-                color: "var(--color-gold)",
-                fontFamily: "var(--font-cinzel)",
-                fontSize: "0.8rem",
-                letterSpacing: "0.08em",
-                marginBottom: "0.5rem",
-              }}>
-                ◈ {getTitleText(player?.equippedTitleId)}
-              </div>
-            )}
             <p style={{ color: "var(--color-text-dim)", fontStyle: "italic" }}>
               {isAdmin && (
                 <span style={{ color: "var(--color-gold)", marginRight: "0.5rem" }}>

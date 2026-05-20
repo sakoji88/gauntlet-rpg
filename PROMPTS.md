@@ -98,42 +98,7 @@ high detail, cinematic, no text, no watermark, no modern objects
 
 ---
 
-## 5. РАМКИ АВАТАРА — УНИВЕРСАЛЬНЫЙ ПРОМПТ ⭐
-
-📁 Класть в: **`public/images/frames/`** (папку создал — см. `_PLACE_FRAMES_HERE.md`)
-📐 **512×512**, формат **.png** с **прозрачным фоном**
-
-**ВАЖНО — единый формат для всех рамок:**
-- Квадрат 512×512, прозрачный фон (alpha).
-- В центре — **круглое прозрачное «окно»** (туда ляжет аватар), диаметр ~70% ширины.
-- Орнамент — только по кольцу вокруг окна. Центр строго прозрачный.
-
-Универсальный промпт (меняй только `[МАТЕРИАЛ]` и `[ЦВЕТ]`):
-
-```
-ornate circular avatar frame, decorative ring border only, [МАТЕРИАЛ],
-intricate dark slavic engravings, glowing [ЦВЕТ] accents, centered round
-transparent hole, transparent background, PNG, symmetrical, game UI asset,
-no face, no portrait inside, no text --ar 1:1
-```
-
-| Файл | Подставить |
-|---|---|
-| `bronze_frame.png` | `[МАТЕРИАЛ]` = `tarnished bronze metal`, `[ЦВЕТ]` = `warm bronze` |
-| `gold_frame.png` | `[МАТЕРИАЛ]` = `ancient gold metal`, `[ЦВЕТ]` = `bright gold` |
-| `frame_thorns.png` | `[МАТЕРИАЛ]` = `twisted dark thorned briar`, `[ЦВЕТ]` = `dim crimson` |
-
-**Как работают рамки сейчас:** надеваешь рамку в инвентаре → она показывается
-вокруг аватарки на профиле и публичной странице. Пока PNG нет — рисуется
-CSS-обводка со свечением (тоже выглядит как рамка). Положишь PNG в `frames/` —
-поверх появится настоящий арт. Имя файла = id предмета (см. таблицу выше).
-
-Хочешь больше рамок — добавь записи в `lib/cosmetics.ts` (объект `FRAMES`) и
-такой же предмет category COSMETIC в `lib/items.ts`.
-
----
-
-## 6. ИКОНКИ ПРЕДМЕТОВ
+## 5. ИКОНКИ ПРЕДМЕТОВ
 
 📁 Класть в: `public/images/items/`
 📐 **512×512**, формат **.png**, прозрачный фон. Имя файла = `iconKey` предмета.
@@ -154,7 +119,7 @@ no text, no border --ar 1:1
 
 ---
 
-## 7. ЛОГОТИП / ГЛАВНЫЙ АРТ
+## 6. ЛОГОТИП / ГЛАВНЫЙ АРТ
 
 📁 Класть в: `public/images/world/` (или куда удобно)
 
@@ -175,5 +140,4 @@ black forest, ornate slavic frame, grimdark, embossed metal, no text --ar 1:1
 | Фоны регионов | `public/images/regions/` | .jpg 1920×1080 |
 | Классы | `public/images/classes/` | .png 2:3 |
 | NPC | `public/images/quest-givers/` | .png 2:3 |
-| Рамки | `public/images/frames/` | .png 512×512 прозрачные |
 | Иконки предметов | `public/images/items/` | .png 512×512 прозрачные |

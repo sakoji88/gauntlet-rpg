@@ -187,48 +187,6 @@ export const ITEMS: ItemDef[] = [
     charges: 1, rollWeight: 4, isTrap: true,
   },
 
-  // ===== КОСМЕТИКА =====
-  {
-    id: "bronze_frame",
-    name: "Бронзовая Рамка",
-    description: "Бронзовая рамка для аватарки. Навсегда в коллекции.",
-    category: "COSMETIC", rarity: "COMMON",
-    iconKey: "frame_bronze",
-    rollWeight: 0, // косметика не выпадает с колеса — только за квесты/условия
-  },
-  {
-    id: "gold_frame",
-    name: "Золотая Рамка",
-    description: "Золотая рамка для аватарки. Навсегда.",
-    category: "COSMETIC", rarity: "EPIC",
-    iconKey: "frame_gold",
-    rollWeight: 0,
-  },
-  {
-    id: "title_drop_champ",
-    name: "Титул «Дроп-Чемпион»",
-    description: "Иронический титул для тех, кто часто бросает игры.",
-    category: "COSMETIC", rarity: "RARE",
-    iconKey: "title",
-    rollWeight: 0,
-  },
-  {
-    id: "title_iron_will",
-    name: "Титул «Железная Воля»",
-    description: "За прохождение игры в Тюрьме.",
-    category: "COSMETIC", rarity: "EPIC",
-    iconKey: "title",
-    rollWeight: 0,
-  },
-  {
-    id: "frame_thorns",
-    name: "Терновая Рамка",
-    description: "Рамка для Отшельника-Страдальца.",
-    category: "COSMETIC", rarity: "RARE",
-    iconKey: "frame_thorns",
-    rollWeight: 0,
-  },
-
   // ============================================================
   // ===== ПРЕДМЕТЫ КОЛЕСА (сезон 2) — выпадают с рулетки =====
   // ============================================================
