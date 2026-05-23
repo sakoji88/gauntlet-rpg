@@ -263,7 +263,7 @@ export const ITEMS: ItemDef[] = [
     name: "Продал подешевле",
     description: "Продешевил по-крупному, в кармане дыра. ☠ ДЕБАФФ (сразу с колеса): −10 Злата.",
     category: "CONSUMABLE", rarity: "COMMON",
-    iconKey: "coin", effectKey: "curse_gold",
+    iconKey: "coin-cheap", effectKey: "curse_gold",
     charges: 1, rollWeight: 10,
   },
   {
@@ -279,7 +279,7 @@ export const ITEMS: ItemDef[] = [
     name: "Шар Всезнания",
     description: "Светится знанием изнутри. Следующая засчитанная игра даст ДВЕ крутки колеса предметов.",
     category: "CONSUMABLE", rarity: "RARE",
-    iconKey: "flashlight", effectKey: "wheel_double_next",
+    iconKey: "vseznanie", effectKey: "wheel_double_next",
     charges: 1, rollWeight: 6,
   },
   {
@@ -513,7 +513,7 @@ export const ITEMS: ItemDef[] = [
     name: "Футболка Punish",
     description: "Грозная надпись пугает даже игру. ×1.5 поинтов следующей игре.",
     category: "CONSUMABLE", rarity: "RARE",
-    iconKey: "tshirt", effectKey: "points_mult_next",
+    iconKey: "tshirt-punish", effectKey: "points_mult_next",
     charges: 1, rollWeight: 6,
   },
   {
@@ -521,7 +521,7 @@ export const ITEMS: ItemDef[] = [
     name: "Худи Горгонит",
     description: "Подбросил монетку на удачу. ±2 поинта (50/50) к следующей засчитанной игре.",
     category: "CONSUMABLE", rarity: "RARE",
-    iconKey: "hoodie", effectKey: "coin_flip_next",
+    iconKey: "hoodie-gorg", effectKey: "coin_flip_next",
     charges: 1, rollWeight: 6,
   },
   {
@@ -582,7 +582,7 @@ export const ITEMS: ItemDef[] = [
     name: "Зип худи Not Bad Days",
     description: "Дни и правда не так плохи. +5 поинтов следующей игре.",
     category: "CONSUMABLE", rarity: "EPIC",
-    iconKey: "hoodie", effectKey: "points_next_5",
+    iconKey: "hoodie-nbd", effectKey: "points_next_5",
     charges: 1, rollWeight: 0,
   },
   {
