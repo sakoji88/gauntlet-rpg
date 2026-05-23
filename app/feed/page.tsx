@@ -365,14 +365,26 @@ export default async function FeedPage() {
                       )}{" "}
                       <strong style={{ color: "var(--color-gold)" }}>{g.title}</strong>
                     </div>
-                    {g.description && (
+                    {(g.hours !== null || g.rating !== null) && (
+                      <div style={{
+                        display: "flex", gap: "0.75rem", flexWrap: "wrap",
+                        fontSize: "0.75rem", color: "var(--color-text-dim)",
+                        marginTop: "0.2rem",
+                      }}>
+                        {g.hours !== null && <span>⏱ {g.hours} ч</span>}
+                        {g.rating !== null && (
+                          <span style={{ color: "var(--color-gold-dim)" }}>★ {g.rating}/100</span>
+                        )}
+                      </div>
+                    )}
+                    {g.description && g.description.replace(/\[wheel:\w+\]/g, "").trim() && (
                       <div style={{
                         fontSize: "0.8rem",
                         color: "var(--color-text-dim)",
                         fontStyle: "italic",
                         marginTop: "0.2rem",
                       }}>
-                        «{g.description}»
+                        «{g.description.replace(/\[wheel:\w+\]/g, "").trim()}»
                       </div>
                     )}
                   </div>
