@@ -242,7 +242,21 @@ export default async function PublicPlayerPage({
                     {g.status === "COMPLETED" ? "✓" : "✕"}
                   </span>
                   <span style={{ color: "var(--color-text-bright)" }}>{g.title}</span>
-                  {g.description && !g.description.includes("[wheel:") && (
+                  {(g.hours !== null || g.rating !== null) && (
+                    <div style={{
+                      display: "flex", gap: "0.75rem", flexWrap: "wrap",
+                      fontSize: "0.72rem", color: "var(--color-text-dim)",
+                      marginTop: "0.2rem", paddingLeft: "1.5rem",
+                    }}>
+                      {g.hours !== null && (
+                        <span>⏱ {g.hours} ч</span>
+                      )}
+                      {g.rating !== null && (
+                        <span style={{ color: "var(--color-gold-dim)" }}>★ {g.rating}/100</span>
+                      )}
+                    </div>
+                  )}
+                  {g.description && g.description.replace(/\[wheel:\w+\]/g, "").trim() && (
                     <div style={{
                       fontSize: "0.75rem", color: "var(--color-text-dim)",
                       fontStyle: "italic", marginTop: "0.2rem", paddingLeft: "1.5rem",
