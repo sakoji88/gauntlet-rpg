@@ -232,7 +232,7 @@ export default function ActiveGamePanel({ game, activeHype }: ActiveGameProps) {
 
             <div style={{ display: "grid", gap: "0.75rem", marginBottom: "1rem" }}>
               <label style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
-                <span style={labelStyle}>Часов потрачено (по HLTB)</span>
+                <span style={labelStyle}>Часов потрачено</span>
                 <input
                   type="number" step="0.1"
                   value={hours} onChange={(e) => setHours(e.target.value)}
@@ -240,11 +240,11 @@ export default function ActiveGamePanel({ game, activeHype }: ActiveGameProps) {
                 />
               </label>
               <label style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
-                <span style={labelStyle}>Оценка с Metacritic (0–100)</span>
+                <span style={labelStyle}>Оценка игры (0–10)</span>
                 <input
-                  type="number" min="0" max="100"
+                  type="number" min="0" max="10"
                   value={rating} onChange={(e) => setRating(e.target.value)}
-                  placeholder="например: 87" style={inputStyle}
+                  placeholder="например: 5" style={inputStyle}
                 />
               </label>
 
