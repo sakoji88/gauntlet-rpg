@@ -59,6 +59,7 @@ export const ITEM_ICON_EMOJI: Record<string, string> = {
   hat: "🎩",
   beard: "🧔",
   beard_goat: "🐐",
+  moustache: "👨",
 
   // ===== Артефакты =====
   crown: "👑",

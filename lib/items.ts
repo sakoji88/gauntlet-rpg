@@ -358,10 +358,10 @@ export const ITEMS: ItemDef[] = [
   },
   {
     id: "fake_beard_chakhlon",
-    name: "Козлиная бородка Душика",
-    description: "Душик шипит на любую порчу — и проклятье отскакивает мимо. Следующее проклятье с колеса не пристанет.",
+    name: "Гадкие усики Клопса",
+    description: "Прицепил под нос — Клопс ухмыляется откуда-то из табора, и проклятье соскальзывает. Следующее проклятье с колеса не пристанет.",
     category: "CONSUMABLE", rarity: "RARE",
-    iconKey: "beard_goat", effectKey: "curse_immunity",
+    iconKey: "moustache", effectKey: "curse_immunity",
     charges: 1, rollWeight: 6,
   },
   {
