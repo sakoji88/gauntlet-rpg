@@ -19,6 +19,7 @@ interface ActiveGameProps {
     conditionsSnapshot: string | null;
   };
   activeHype?: string | null; // текст обещания Барда, если бафф активен
+  playerClass?: string | null; // нужно для специфики Страдальца (доп. поле Metacritic)
 }
 
 interface BreakdownEntry {
@@ -27,11 +28,14 @@ interface BreakdownEntry {
   type: "base" | "bonus" | "penalty" | "multiplier";
 }
 
-export default function ActiveGamePanel({ game, activeHype }: ActiveGameProps) {
+export default function ActiveGamePanel({ game, activeHype, playerClass }: ActiveGameProps) {
   const router = useRouter();
+  const isSufferer = playerClass === "sufferer";
   const [confirming, setConfirming] = useState<"complete" | "drop" | null>(null);
   const [hours, setHours] = useState<string>("");
   const [rating, setRating] = useState<string>("");
+  // Доп. поле Metacritic — только для Страдальца, по нему считается его пассивка.
+  const [metacriticRating, setMetacriticRating] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [isMaxDifficulty, setIsMaxDifficulty] = useState(false);
   const [bardHonored, setBardHonored] = useState(false);
@@ -55,6 +59,8 @@ export default function ActiveGamePanel({ game, activeHype }: ActiveGameProps) {
           action,
           hours: hours ? parseFloat(hours) : null,
           rating: rating ? parseInt(rating, 10) : null,
+          metacriticRating:
+            isSufferer && metacriticRating ? parseInt(metacriticRating, 10) : null,
           description: description.trim() || null,
           isMaxDifficulty,
           bardHonored: activeHype ? bardHonored : undefined,
@@ -247,6 +253,29 @@ export default function ActiveGamePanel({ game, activeHype }: ActiveGameProps) {
                   placeholder="например: 5" style={inputStyle}
                 />
               </label>
+
+              {/* Доп. поле только для Страдальца — Metacritic 0–100 для пассивки */}
+              {isSufferer && (
+                <label style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+                  <span style={labelStyle}>Оценка Metacritic (0–100) — для пассивки Страдальца</span>
+                  <input
+                    type="number" min="0" max="100"
+                    value={metacriticRating}
+                    onChange={(e) => setMetacriticRating(e.target.value)}
+                    placeholder="например: 78"
+                    style={inputStyle}
+                  />
+                  <span
+                    style={{
+                      fontSize: "0.7rem",
+                      color: "var(--color-text-dim)",
+                      fontStyle: "italic",
+                    }}
+                  >
+                    «Сладость Страдания»: &lt;60 → +3, &lt;40 → +6. «Презрение к Успеху»: &gt;85 → −2.
+                  </span>
+                </label>
+              )}
 
               {/* Чекбокс — макс сложность */}
               <CheckBox

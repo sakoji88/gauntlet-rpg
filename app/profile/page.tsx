@@ -482,6 +482,7 @@ export default async function ProfilePage() {
                 ? activeGame.conditionType
                 : "basic",
           }}
+          playerClass={playerFromDb.class}
           activeHype={(() => {
             const buffs = parseActiveBuffs(playerFromDb.activeBuffs);
             const hypeBuff = findBuff(buffs, "class_hype");

@@ -29,7 +29,11 @@ interface CalcInput {
   // Данные игры
   region: string;            // ID региона где прошёл (chakhly-bor и т.д.)
   hours: number | null;      // Часов на прохождение
-  rating: number | null;     // Metacritic 0-100
+  rating: number | null;     // Личная оценка игрока (шкала 0-10).
+                             // Используется для квестов RATING, отображения и т.п.
+  metacriticRating?: number | null; // Объективная оценка Metacritic 0-100.
+                                    // Сейчас читается ТОЛЬКО для пассивки Страдальца
+                                    // (Сладость Страдания / Презрение к Успеху).
   isMaxDifficulty: boolean;  // Прошёл ли на макс. сложности (потом ставит юзер)
   conditionType: "basic" | "genre" | "special"; // Тип условий, выбранный при ролле
 
@@ -280,10 +284,12 @@ function getClassBonus(input: CalcInput): PointsBreakdownEntry {
       break;
 
     case "sufferer":
-      // Сладость Страдания — за рейтинг <60 +3, <40 +6
-      if (input.rating !== null) {
-        if (input.rating < 40) return { label: "Страдалец: Сладость (<40 рейтинг)", value: 6, type: "bonus" };
-        if (input.rating < 60) return { label: "Страдалец: Сладость (<60 рейтинг)", value: 3, type: "bonus" };
+      // Сладость Страдания — за Metacritic <60 +3, <40 +6.
+      // У Страдальца отдельное поле metacriticRating (0..100), личная оценка
+      // (0..10) для этого не подходит.
+      if (input.metacriticRating !== null && input.metacriticRating !== undefined) {
+        if (input.metacriticRating < 40) return { label: "Страдалец: Сладость (Metacritic <40)", value: 6, type: "bonus" };
+        if (input.metacriticRating < 60) return { label: "Страдалец: Сладость (Metacritic <60)", value: 3, type: "bonus" };
       }
       break;
 
@@ -313,9 +319,13 @@ function getClassPenalty(input: CalcInput): PointsBreakdownEntry {
       break;
 
     case "sufferer":
-      // -2 за игры с рейтингом >85
-      if (input.rating !== null && input.rating > 85) {
-        return { label: "Страдалец: Презрение к Успеху (>85 рейтинг)", value: -2, type: "penalty" };
+      // -2 за игры с Metacritic >85
+      if (
+        input.metacriticRating !== null &&
+        input.metacriticRating !== undefined &&
+        input.metacriticRating > 85
+      ) {
+        return { label: "Страдалец: Презрение к Успеху (Metacritic >85)", value: -2, type: "penalty" };
       }
       break;
   }

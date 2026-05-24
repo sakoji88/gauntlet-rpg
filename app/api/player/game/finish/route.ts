@@ -48,7 +48,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Кривое тело" }, { status: 400 });
   }
 
-  const { action, hours, rating, description, isMaxDifficulty, bardHonored } = body;
+  const { action, hours, rating, metacriticRating, description, isMaxDifficulty, bardHonored } = body;
 
   if (action !== "complete" && action !== "drop") {
     return NextResponse.json({ error: "Неизвестное действие" }, { status: 400 });
@@ -241,6 +241,10 @@ export async function POST(req: Request) {
       region: game.region,
       hours: typeof hours === "number" ? hours : null,
       rating: typeof rating === "number" ? rating : null,
+      // metacriticRating — отдельная шкала 0..100 для пассивки Страдальца.
+      // Если игрок Sufferer и вписал, использует её для бонуса/штрафа за рейтинг.
+      metacriticRating:
+        typeof metacriticRating === "number" ? metacriticRating : null,
       isMaxDifficulty: Boolean(isMaxDifficulty),
       conditionType,
       playerClass: player.class,
