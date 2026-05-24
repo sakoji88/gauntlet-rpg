@@ -411,35 +411,47 @@ export function getRegionById(id: string | null): RegionData | null {
   return REGIONS.find((r) => r.id === id) ?? null;
 }
 
+// === СТОИМОСТЬ ПЕРЕМЕЩЕНИЯ ПО РАССТОЯНИЮ ===
+// Цена в ходах считается по евклидову расстоянию между точками position на карте
+// (координаты — проценты от ширины/высоты, оба 0..100). Соседство (neighbors)
+// больше НЕ используется для расчёта цены — только реальная дистанция.
+//   d ≤ 22 → 1 ход (близкие: Хутор–Бор, Хутор–Базар, Табор–Пустыри)
+//   d  > 22 → 2 хода (всё остальное — средние и дальние)
+const COST_TIER_CLOSE = 22; // ≤ — 1 ход, иначе 2
+
+export function distanceBetweenRegions(from: RegionData, to: RegionData): number {
+  const dx = from.position.x - to.position.x;
+  const dy = from.position.y - to.position.y;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+export function moveCostFromDistance(distance: number): number {
+  return distance <= COST_TIER_CLOSE ? 1 : 2;
+}
+
 // Хелпер: можно ли переместиться из A в B
 export function canMoveBetween(fromId: string, toId: string): {
   canMove: boolean;
-  cost: number; // 1 ход (соседи) или 2 хода (дальний)
+  cost: number;     // 1 или 2 хода — по расстоянию на карте
+  distance: number; // евклидова дистанция (для UI / отладки)
   reason?: string;
 } {
   const from = getRegionById(fromId);
   const to = getRegionById(toId);
 
   if (!from || !to) {
-    return { canMove: false, cost: 0, reason: "Регион не найден" };
+    return { canMove: false, cost: 0, distance: 0, reason: "Регион не найден" };
   }
 
   if (fromId === toId) {
-    return { canMove: false, cost: 0, reason: "Ты уже здесь" };
+    return { canMove: false, cost: 0, distance: 0, reason: "Ты уже здесь" };
   }
 
   if (toId === "prison") {
-    return { canMove: false, cost: 0, reason: "В Тюрьму нельзя пойти добровольно" };
+    return { canMove: false, cost: 0, distance: 0, reason: "В Тюрьму нельзя пойти добровольно" };
   }
 
-  // Из Тюрьмы (когда освобождён) "соседей" нет — любой переход стоит 2 хода.
-  // Сама блокировка "сидит в тюрьме" решается в API через флаг player.inPrison.
-
-  // Соседи — 1 ход
-  if (from.neighbors.includes(to.id)) {
-    return { canMove: true, cost: 1 };
-  }
-
-  // Дальний переход — 2 хода
-  return { canMove: true, cost: 2 };
+  const distance = distanceBetweenRegions(from, to);
+  const cost = moveCostFromDistance(distance);
+  return { canMove: true, cost, distance };
 }
