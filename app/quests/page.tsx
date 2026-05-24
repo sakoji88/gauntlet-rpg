@@ -8,6 +8,7 @@ import { ChevronLeft, Scroll, Trophy, Hourglass, X as XIcon, Check, CircleSlash 
 import { getRegionById } from "@/lib/regions";
 import { parseQuestRewards } from "@/lib/quest-types";
 import { getTemplateById } from "@/lib/quest-templates";
+import QuestInlineActions from "./QuestInlineActions";
 
 export default async function QuestsPage() {
   const session = await auth();
@@ -94,6 +95,7 @@ type QuestRow = {
   expiresAt: Date | null;
   completedAt: Date | null;
   rewards: string;
+  selfComplete: boolean;
 };
 
 function Section({
@@ -270,7 +272,13 @@ function QuestCard({ quest }: { quest: QuestRow }) {
         </span>
       </div>
 
-      {quest.status === "OFFERED" && (
+      {/* IRL / админ-квесты предлагаются прямо в свитке — без похода к NPC. */}
+      {quest.status === "OFFERED" && quest.type === "IRL" && (
+        <QuestInlineActions questId={quest.id} mode="offer" />
+      )}
+
+      {/* Обычные NPC-квесты — игрок принимает в регионе у NPC. */}
+      {quest.status === "OFFERED" && quest.type !== "IRL" && (
         <div style={{
           marginTop: "0.6rem",
           fontSize: "0.8rem",
@@ -289,6 +297,23 @@ function QuestCard({ quest }: { quest: QuestRow }) {
           >
             Перейти в регион →
           </Link>
+        </div>
+      )}
+
+      {/* "Обычное" админ-задание (selfComplete) — игрок сам жмёт «Выполнено». */}
+      {quest.status === "ACTIVE" && quest.type === "IRL" && quest.selfComplete && (
+        <QuestInlineActions questId={quest.id} mode="self-complete" />
+      )}
+
+      {/* ИРЛ-квест (не self-complete), уже принятый — ждём админа. */}
+      {quest.status === "ACTIVE" && quest.type === "IRL" && !quest.selfComplete && (
+        <div style={{
+          marginTop: "0.6rem",
+          fontSize: "0.78rem",
+          color: "var(--color-text-dim)",
+          fontStyle: "italic",
+        }}>
+          Сделай задание ИРЛ → админ потом сам засчитает.
         </div>
       )}
     </div>

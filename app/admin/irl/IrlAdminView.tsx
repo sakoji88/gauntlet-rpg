@@ -13,6 +13,7 @@ interface Template {
   npcRegion: string;
   rewardPoints: number;
   rewardExp: number;
+  selfComplete: boolean;
   givenCount: number;
 }
 interface PlayerOpt {
@@ -56,6 +57,8 @@ export default function IrlAdminView({
   const [npcRegion, setNpcRegion] = useState("tabor");
   const [rewardPoints, setRewardPoints] = useState(15);
   const [rewardExp, setRewardExp] = useState(30);
+  // false = ИРЛ (админ потом засчитает), true = обычное анонимное (игрок сам)
+  const [selfComplete, setSelfComplete] = useState(false);
 
   // выбор игрока на выдачу, по templateId
   const [deliverTo, setDeliverTo] = useState<Record<string, string>>({});
@@ -96,17 +99,24 @@ export default function IrlAdminView({
       npcRegion,
       rewardPoints,
       rewardExp,
+      selfComplete,
     });
     if (r) {
       setTitle("");
       setDescription("");
       setFlavor("");
+      setSelfComplete(false);
     }
   }
 
   async function deliver(templateId: string, target: string) {
     const r = await call({ action: "deliver", templateId, target });
-    if (r) alert(`Выдано игроку: ${r.playerNickname}`);
+    if (!r) return;
+    if (r.anonymous) {
+      alert("Квест выдан анонимно. Кому именно — не показываю (как ты и хотел).");
+    } else {
+      alert(`Выдано игроку: ${r.playerNickname}`);
+    }
   }
 
   return (
@@ -137,11 +147,15 @@ export default function IrlAdminView({
       </Link>
 
       <h1 style={{ fontSize: "2rem", color: "var(--color-gold)", marginBottom: "0.25rem" }}>
-        ИРЛ-квесты
+        Админ-квесты
       </h1>
       <p style={{ color: "var(--color-text-dim)", fontStyle: "italic", marginBottom: "2rem" }}>
-        Создай задание в пул, выдай игроку (или случайному), потом засчитай выполнение.
-        Один и тот же шаблон одному игроку повторно не выдаётся.
+        Создай задание в пул, выдай игроку (или случайному) — оно придёт ему как
+        предложение, игрок принимает или отказывает. Шаблон одному игроку повторно
+        не выдаётся.
+        <br />
+        <strong style={{ color: "var(--color-text)" }}>ИРЛ:</strong> ты сам потом подтверждаешь выполнение.{" "}
+        <strong style={{ color: "var(--color-text)" }}>Обычное:</strong> игрок отмечает выполнение сам, ты НЕ видишь кому что досталось.
       </p>
 
       {/* СОЗДАНИЕ ШАБЛОНА */}
@@ -192,6 +206,34 @@ export default function IrlAdminView({
               />
             </Field>
           </div>
+          <label
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "0.55rem",
+              padding: "0.6rem 0.75rem",
+              border: `1px solid ${selfComplete ? "var(--color-gold)" : "var(--color-border)"}`,
+              background: selfComplete ? "rgba(212,165,116,0.08)" : "transparent",
+              cursor: "pointer",
+              color: selfComplete ? "var(--color-gold)" : "var(--color-text)",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={selfComplete}
+              onChange={(e) => setSelfComplete(e.target.checked)}
+              style={{ marginTop: "0.2rem" }}
+            />
+            <span style={{ fontSize: "0.85rem", lineHeight: 1.4 }}>
+              <strong>Обычное задание (анонимно, игрок отметит сам)</strong>
+              <br />
+              <span style={{ fontSize: "0.78rem", color: "var(--color-text-dim)" }}>
+                ИРЛ-флоу: ты потом сам жмёшь «засчитать». Обычное: игрок жмёт
+                «выполнено» в своём свитке квестов, ты НЕ видишь кому выдалось
+                и кто завершил.
+              </span>
+            </span>
+          </label>
           <button onClick={create} disabled={busy} style={btn("var(--color-gold)")}>
             <Plus size={15} /> Создать шаблон
           </button>
@@ -206,10 +248,25 @@ export default function IrlAdminView({
           <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
             {templates.map((t) => (
               <div key={t.id} style={card}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem", alignItems: "center" }}>
                   <strong style={{ color: "var(--color-text-bright)" }}>{t.title}</strong>
                   <span style={{ fontSize: "0.75rem", color: "var(--color-gold)" }}>
                     +{t.rewardPoints} поинтов · +{t.rewardExp} опыта
+                  </span>
+                </div>
+                <div style={{ display: "flex", gap: "0.4rem", margin: "0.35rem 0", flexWrap: "wrap" }}>
+                  <span
+                    style={{
+                      fontSize: "0.68rem",
+                      padding: "0.15rem 0.5rem",
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                      background: t.selfComplete ? "rgba(122,74,176,0.18)" : "rgba(212,165,116,0.12)",
+                      color: t.selfComplete ? "#b88be3" : "var(--color-gold)",
+                      border: `1px solid ${t.selfComplete ? "#7a4ab0" : "var(--color-gold-dim)"}`,
+                    }}
+                  >
+                    {t.selfComplete ? "Обычное (анонимно)" : "ИРЛ (я засчитаю)"}
                   </span>
                 </div>
                 <p style={{ fontSize: "0.85rem", color: "var(--color-text)", margin: "0.35rem 0" }}>

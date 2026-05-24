@@ -3,12 +3,16 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
 import { recomputeAndPersistLevel } from "@/lib/level-formula";
 
-// Управление ИРЛ-квестами (только админ).
+// Управление ИРЛ- и обычными админ-квестами (только админ).
 // Действия (поле action):
-//   create         — создать шаблон ИРЛ-квеста в пул
-//   delete_template — удалить шаблон из пула
-//   deliver        — выдать шаблон игроку (конкретному или случайному, без повтора)
-//   resolve        — засчитать/отклонить выданный ИРЛ-квест
+//   create          — создать шаблон в пул (флаг selfComplete: ИРЛ или "обычный")
+//   delete_template — удалить шаблон
+//   deliver         — выдать шаблон игроку (status=OFFERED, игрок принимает/отклоняет)
+//   resolve         — засчитать / отклонить выданный ИРЛ-квест (только не-selfComplete)
+//
+// ИРЛ-квесты:        selfComplete=false. Админ потом подтверждает выполнение.
+// "Обычные" квесты:  selfComplete=true.  Игрок сам отмечает выполнение, админ
+//                    НЕ видит ни кому выдан, ни что выполнено.
 
 const GOLD_PER_QUEST = 5;
 
@@ -32,6 +36,7 @@ export async function POST(req: Request) {
     const npcRegion = String(body.npcRegion ?? "").trim() || "tabor";
     const rewardPoints = Number.isFinite(body.rewardPoints) ? Math.round(body.rewardPoints) : 15;
     const rewardExp = Number.isFinite(body.rewardExp) ? Math.round(body.rewardExp) : 30;
+    const selfComplete = Boolean(body.selfComplete);
 
     if (!title || !description) {
       return NextResponse.json({ error: "Нужны название и описание" }, { status: 400 });
@@ -44,6 +49,7 @@ export async function POST(req: Request) {
         npcRegion,
         rewardPoints: Math.max(0, rewardPoints),
         rewardExp: Math.max(0, rewardExp),
+        selfComplete,
       },
     });
     return NextResponse.json({ success: true, template: tpl });
@@ -91,7 +97,7 @@ export async function POST(req: Request) {
     } else {
       if (excludeIds.has(target)) {
         return NextResponse.json(
-          { error: "Этот игрок уже получал этот ИРЛ-квест." },
+          { error: "Этот игрок уже получал этот квест." },
           { status: 400 },
         );
       }
@@ -113,10 +119,21 @@ export async function POST(req: Request) {
         flavor: tpl.flavor ?? "Особое поручение.",
         targetCount: 1,
         rewards: JSON.stringify({ points: tpl.rewardPoints, exp: tpl.rewardExp }),
-        status: "ACTIVE",
-        acceptedAt: new Date(),
+        // НОВЫЙ ФЛОУ: квест приходит как ПРЕДЛОЖЕНИЕ. Игрок жмёт «Принять/Отказать».
+        // Не сбивает другие активные квесты — встаёт в ряд.
+        status: "OFFERED",
+        selfComplete: tpl.selfComplete,
       },
     });
+
+    // Для "обычных" (selfComplete) — НЕ возвращаем ник, чтобы админ не знал.
+    if (tpl.selfComplete) {
+      return NextResponse.json({
+        success: true,
+        questId: quest.id,
+        anonymous: true,
+      });
+    }
     const player = await prisma.player.findUnique({ where: { id: playerId } });
     return NextResponse.json({
       success: true,
@@ -125,7 +142,7 @@ export async function POST(req: Request) {
     });
   }
 
-  // ===== ЗАСЧИТАТЬ / ОТКЛОНИТЬ =====
+  // ===== ЗАСЧИТАТЬ / ОТКЛОНИТЬ (только не-selfComplete ИРЛ) =====
   if (action === "resolve") {
     const questId = String(body.questId ?? "");
     const result = body.result; // "complete" | "decline"
@@ -133,8 +150,14 @@ export async function POST(req: Request) {
     if (!quest || quest.type !== "IRL") {
       return NextResponse.json({ error: "ИРЛ-квест не найден" }, { status: 404 });
     }
+    if (quest.selfComplete) {
+      return NextResponse.json(
+        { error: "Это обычное задание — его игрок отмечает сам, ты не вмешивайся." },
+        { status: 400 },
+      );
+    }
     if (quest.status !== "ACTIVE") {
-      return NextResponse.json({ error: "Квест уже не активен" }, { status: 400 });
+      return NextResponse.json({ error: "Квест не в активном состоянии" }, { status: 400 });
     }
 
     if (result === "decline") {

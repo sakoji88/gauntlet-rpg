@@ -164,6 +164,9 @@ model Quest {
   params      String?
   rewards     String
   status      QuestStatus @default(OFFERED)
+  // true для админ-квестов, которые игрок отмечает выполненными сам
+  // (без проверки админом, анонимно для админа).
+  selfComplete Boolean    @default(false)
   offeredAt   DateTime    @default(now())
   acceptedAt  DateTime?
   expiresAt   DateTime?
@@ -302,6 +305,10 @@ model IrlQuestTemplate {
   rewardPoints Int      @default(15)
   rewardExp    Int      @default(30)
   active       Boolean  @default(true)
+  // true → "обычное" задание: игрок сам отмечает выполненным, админ
+  //         не видит кому ушло и не засчитывает вручную.
+  // false (по умолчанию) → ИРЛ-квест: админ засчитывает после физической проверки.
+  selfComplete Boolean  @default(false)
   createdAt    DateTime @default(now())
 }
 

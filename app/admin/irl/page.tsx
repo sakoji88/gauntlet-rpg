@@ -30,8 +30,10 @@ export default async function AdminIrlPage() {
     orderBy: { nickname: "asc" },
   });
 
+  // Для "ждут проверки" — ТОЛЬКО ИРЛ (selfComplete=false). Обычные/анонимные
+  // админу не видны: игрок отмечает их сам.
   const activeQuests = await prisma.quest.findMany({
-    where: { type: "IRL", status: "ACTIVE" },
+    where: { type: "IRL", status: "ACTIVE", selfComplete: false },
     orderBy: { offeredAt: "desc" },
     include: { player: { select: { nickname: true } } },
   });
@@ -46,6 +48,7 @@ export default async function AdminIrlPage() {
         npcRegion: t.npcRegion,
         rewardPoints: t.rewardPoints,
         rewardExp: t.rewardExp,
+        selfComplete: t.selfComplete,
         givenCount: givenCounts[t.id] ?? 0,
       }))}
       players={players}
