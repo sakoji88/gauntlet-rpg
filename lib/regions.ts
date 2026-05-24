@@ -411,47 +411,57 @@ export function getRegionById(id: string | null): RegionData | null {
   return REGIONS.find((r) => r.id === id) ?? null;
 }
 
-// === СТОИМОСТЬ ПЕРЕМЕЩЕНИЯ ПО РАССТОЯНИЮ ===
-// Цена в ходах считается по евклидову расстоянию между точками position на карте
-// (координаты — проценты от ширины/высоты, оба 0..100). Соседство (neighbors)
-// больше НЕ используется для расчёта цены — только реальная дистанция.
-//   d ≤ 22 → 1 ход (близкие: Хутор–Бор, Хутор–Базар, Табор–Пустыри)
-//   d  > 22 → 2 хода (всё остальное — средние и дальние)
-const COST_TIER_CLOSE = 22; // ≤ — 1 ход, иначе 2
+// === СТОИМОСТЬ ПЕРЕМЕЩЕНИЯ ===
+// Цена в ходах — по hard-coded карте соседства (CLOSE_NEIGHBORS).
+// Списки neighbors в самих RegionData оставлены для совместимости с другими местами,
+// но НЕ используются для расчёта цены (там были «слишком щедрые» соседи типа
+// Ателье↔Чахлый Бор, которые на карте находятся в противоположных углах).
+//
+//   соседи (в этой карте) → 1 ход
+//   всё остальное          → 2 хода
+//
+// Кольцо вокруг карты:
+//   Бор — Хутор — Базар — Пустыри — Табор — Кухня — Ателье — Терем
+//   с замыканием Терем–Ателье (правая сторона), Бор отдельный «тупик» сверху-слева,
+//   Хутор тоже связан с Пустырями (вертикально через болото).
+const CLOSE_NEIGHBORS: Record<string, string[]> = {
+  "chakhly-bor": ["khutor"],
+  khutor:        ["chakhly-bor", "bazar", "pustyri"],
+  bazar:         ["khutor", "pustyri", "tabor"],
+  pustyri:       ["bazar", "tabor", "khutor"],
+  tabor:         ["pustyri", "bazar", "kukhnya"],
+  kukhnya:       ["tabor", "atelye"],
+  atelye:        ["kukhnya", "terem"],
+  terem:         ["atelye"],
+};
 
-export function distanceBetweenRegions(from: RegionData, to: RegionData): number {
-  const dx = from.position.x - to.position.x;
-  const dy = from.position.y - to.position.y;
-  return Math.sqrt(dx * dx + dy * dy);
-}
-
-export function moveCostFromDistance(distance: number): number {
-  return distance <= COST_TIER_CLOSE ? 1 : 2;
+export function areClose(fromId: string, toId: string): boolean {
+  const list = CLOSE_NEIGHBORS[fromId];
+  if (!list) return false;
+  return list.includes(toId);
 }
 
 // Хелпер: можно ли переместиться из A в B
 export function canMoveBetween(fromId: string, toId: string): {
   canMove: boolean;
-  cost: number;     // 1 или 2 хода — по расстоянию на карте
-  distance: number; // евклидова дистанция (для UI / отладки)
+  cost: number; // 1 (близкие соседи) или 2 (всё остальное)
   reason?: string;
 } {
   const from = getRegionById(fromId);
   const to = getRegionById(toId);
 
   if (!from || !to) {
-    return { canMove: false, cost: 0, distance: 0, reason: "Регион не найден" };
+    return { canMove: false, cost: 0, reason: "Регион не найден" };
   }
 
   if (fromId === toId) {
-    return { canMove: false, cost: 0, distance: 0, reason: "Ты уже здесь" };
+    return { canMove: false, cost: 0, reason: "Ты уже здесь" };
   }
 
   if (toId === "prison") {
-    return { canMove: false, cost: 0, distance: 0, reason: "В Тюрьму нельзя пойти добровольно" };
+    return { canMove: false, cost: 0, reason: "В Тюрьму нельзя пойти добровольно" };
   }
 
-  const distance = distanceBetweenRegions(from, to);
-  const cost = moveCostFromDistance(distance);
-  return { canMove: true, cost, distance };
+  const cost = areClose(fromId, toId) ? 1 : 2;
+  return { canMove: true, cost };
 }
