@@ -88,3 +88,31 @@ export function getItemEmoji(iconKey: string | null | undefined): string {
   if (!iconKey) return "❔";
   return ITEM_ICON_EMOJI[iconKey] ?? "❔";
 }
+
+// ===== Картинки предметов в /public/images/items/ =====
+//
+// По умолчанию из iconKey → /images/items/<iconKey>.png.
+// Для некоторых предметов имена файлов отличаются (несколько разных худи,
+// футболок и т.п. делят один iconKey) — для них держим оверрайды по itemId.
+const ITEM_IMAGE_OVERRIDES: Record<string, string> = {
+  gorgonit_hoodie: "hoodie-gorg",
+  not_bad_days_hoodie: "hoodie-nbd",
+  punish_tshirt: "tshirt-punish",
+  usb_flashlight: "vseznanie", // «Шар Всезнания»
+  sold_cheap: "coin-cheap",
+};
+
+/**
+ * Вернуть URL картинки предмета. itemId важен для оверрайдов
+ * (несколько предметов с одинаковым iconKey).
+ */
+export function getItemImageUrl(
+  itemId: string | null | undefined,
+  iconKey: string | null | undefined,
+): string | null {
+  if (itemId && ITEM_IMAGE_OVERRIDES[itemId]) {
+    return `/images/items/${ITEM_IMAGE_OVERRIDES[itemId]}.png`;
+  }
+  if (iconKey) return `/images/items/${iconKey}.png`;
+  return null;
+}

@@ -9,7 +9,7 @@ import { RARITY_COLORS, RARITY_NAMES, CATEGORY_NAMES, ItemRarity, ItemCategory, 
 import { isPassive } from "@/lib/item-effects";
 import { parseActiveBuffs } from "@/lib/active-buffs";
 import { getTrapByItemId } from "@/lib/trap-effects";
-import { getItemEmoji } from "@/lib/item-icons";
+import ItemIcon from "@/app/components/ItemIcon";
 import UseItemButton from "./UseItemButton";
 import ThrowTrapButton from "./TrapCard";
 
@@ -229,17 +229,7 @@ function ItemCard({
         gap: "0.75rem",
         alignItems: "flex-start",
       }}>
-        <span
-          aria-hidden
-          style={{
-            fontSize: "2.2rem",
-            lineHeight: 1,
-            flexShrink: 0,
-            filter: `drop-shadow(0 0 8px ${colors.glow})`,
-          }}
-        >
-          {getItemEmoji(item.iconKey)}
-        </span>
+        <ItemIcon itemId={item.id} iconKey={item.iconKey} size={52} glow={colors.glow} />
         <div style={{
           flex: 1,
           minWidth: 0,

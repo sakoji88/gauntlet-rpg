@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Sparkles, X } from "lucide-react";
 import { RARITY_COLORS, RARITY_NAMES, CATEGORY_NAMES, ItemRarity, ItemCategory } from "@/lib/items";
-import { getItemEmoji } from "@/lib/item-icons";
+import ItemIcon from "@/app/components/ItemIcon";
 
 interface RolledItem {
   id: string;
@@ -186,18 +186,7 @@ export default function ItemWheelModal({ gameId, onClose }: ItemWheelModalProps)
                       alignItems: "flex-start",
                       gap: "0.6rem",
                     }}>
-                      <span
-                        aria-hidden
-                        style={{
-                          fontSize: "2rem",
-                          lineHeight: 1,
-                          width: "44px",
-                          textAlign: "center",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {getItemEmoji(c.iconKey)}
-                      </span>
+                      <ItemIcon itemId={c.id} iconKey={c.iconKey} size={44} glow={colors.glow} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{
                           display: "flex",
@@ -266,16 +255,8 @@ function ResultView({ item, onClose }: { item: RolledItem; onClose: () => void }
         "--glow-color": colors.glow,
         animation: item.rarity === "LEGENDARY" ? "glow 2s ease-in-out infinite" : "none",
       }}>
-        <div
-          aria-hidden
-          style={{
-            fontSize: "5rem",
-            lineHeight: 1,
-            marginBottom: "0.75rem",
-            filter: `drop-shadow(0 0 18px ${colors.glow})`,
-          }}
-        >
-          {getItemEmoji(item.iconKey)}
+        <div style={{ marginBottom: "0.75rem", display: "flex", justifyContent: "center" }}>
+          <ItemIcon itemId={item.id} iconKey={item.iconKey} size={128} glow={colors.glow} />
         </div>
         <div style={{
           fontSize: "0.7rem",

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Zap, Loader2, X } from "lucide-react";
 import type { ClassActionDef } from "@/lib/class-actions";
-import { getItemEmoji } from "@/lib/item-icons";
+import ItemIcon from "@/app/components/ItemIcon";
 import { RARITY_COLORS, type ItemRarity } from "@/lib/items";
 
 interface FuseItem {
@@ -364,9 +364,7 @@ export default function ClassActionPanel({
                               {order}
                             </span>
                           )}
-                          <span style={{ fontSize: "1.6rem", lineHeight: 1 }}>
-                            {getItemEmoji(it.iconKey)}
-                          </span>
+                          <ItemIcon itemId={it.itemId} iconKey={it.iconKey} size={42} glow={colors.glow} />
                           <span style={{ lineHeight: 1.2 }}>{it.itemName}</span>
                         </button>
                       );
