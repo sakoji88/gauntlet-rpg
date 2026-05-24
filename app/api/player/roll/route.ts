@@ -75,6 +75,9 @@ export async function POST(req: Request) {
   const rollBuffs = parseActiveBuffs(player.activeBuffs);
   const slimeActive = hasBuff(rollBuffs, "trap_extra_cost");
   if (slimeActive) rollCost += 1;
+  // Похмелье от Рвотничков — следующий ролл стоит +1
+  const hangoverActive = hasBuff(rollBuffs, "trap_roll_extra");
+  if (hangoverActive) rollCost += 1;
 
   if (player.energy < rollCost) {
     return NextResponse.json(
@@ -145,6 +148,7 @@ export async function POST(req: Request) {
   const ancientUsed = hasBuff(updatedBuffs, "class_ancient");
   if (ancientUsed) updatedBuffs = removeBuff(updatedBuffs, "class_ancient");
   if (slimeActive) updatedBuffs = removeBuff(updatedBuffs, "trap_extra_cost");
+  if (hangoverActive) updatedBuffs = removeBuff(updatedBuffs, "trap_roll_extra");
   const buffsChanged = updatedBuffs.length !== rollBuffs.length;
 
   await prisma.player.update({
@@ -162,6 +166,7 @@ export async function POST(req: Request) {
     ancientUsed,
     cost: rollCost,
     slimeApplied: slimeActive,
+    hangoverApplied: hangoverActive,
   });
 }
 

@@ -173,7 +173,7 @@ export const ITEMS: ItemDef[] = [
   {
     id: "fake_quest",
     name: "Поддельный Квест",
-    description: "Жертва видит фальшивый квест от случайного NPC.",
+    description: "Жертва ведётся на фальшивое поручение, уходит не туда — и теряет случайный расходник из инвентаря.",
     category: "TRAP", rarity: "RARE",
     iconKey: "scroll_fake", effectKey: "trap_fake_quest",
     charges: 1, rollWeight: 5, isTrap: true,
@@ -181,7 +181,7 @@ export const ITEMS: ItemDef[] = [
   {
     id: "rat",
     name: "Крыса",
-    description: "Жертва -3 к следующему броску. Можно отказаться и переролить колесо.",
+    description: "Крыса прошмыгнёт у жертвы под ногами — украдёт 10 Злата и принесёт тебе. Мгновенно.",
     category: "TRAP", rarity: "RARE",
     iconKey: "rat", effectKey: "trap_strong_slow",
     charges: 1, rollWeight: 4, isTrap: true,
@@ -358,10 +358,10 @@ export const ITEMS: ItemDef[] = [
   },
   {
     id: "fake_beard_chakhlon",
-    name: "Накладная борода Чахлона",
-    description: "Под чужой личиной даже проклятья тебя не узнают. Следующее проклятье с колеса не пристанет.",
+    name: "Козлиная бородка Душика",
+    description: "Душик шипит на любую порчу — и проклятье отскакивает мимо. Следующее проклятье с колеса не пристанет.",
     category: "CONSUMABLE", rarity: "RARE",
-    iconKey: "beard", effectKey: "curse_immunity",
+    iconKey: "beard_goat", effectKey: "curse_immunity",
     charges: 1, rollWeight: 6,
   },
   {
@@ -445,7 +445,7 @@ export const ITEMS: ItemDef[] = [
   {
     id: "mexican_drisevo",
     name: "Мексиканское дрисево",
-    description: "Острое настолько, что жертва +1 ход тратит на следующее действие.",
+    description: "Жертва бежит срочно — теряет 5 Злата на ходу. Мгновенно при попадании.",
     category: "TRAP", rarity: "COMMON",
     iconKey: "trap_food", effectKey: "trap_drisevo",
     charges: 1, rollWeight: 13, isTrap: true,
@@ -453,7 +453,7 @@ export const ITEMS: ItemDef[] = [
   {
     id: "shit_bag_chakhlik",
     name: "Сральный пакет Чахлика",
-    description: "Подкинул под порог — жертва +1 ход на следующее перемещение.",
+    description: "Зловоние долго не выветривается — +1 ход на следующих ДВУХ перемещениях жертвы.",
     category: "TRAP", rarity: "COMMON",
     iconKey: "trap_bag", effectKey: "trap_shitbag",
     charges: 1, rollWeight: 13, isTrap: true,
@@ -461,7 +461,7 @@ export const ITEMS: ItemDef[] = [
   {
     id: "flamethrower_dushik",
     name: "Огнемёт душика",
-    description: "Пыхнул вслед — жертва +2 хода на следующее перемещение.",
+    description: "Пыхнул вслед — у случайного предмета в инвентаре жертвы сгорает 1 заряд. Мгновенно.",
     category: "TRAP", rarity: "RARE",
     iconKey: "trap_fire", effectKey: "trap_flamethrower",
     charges: 1, rollWeight: 6, isTrap: true,
@@ -469,7 +469,7 @@ export const ITEMS: ItemDef[] = [
   {
     id: "zigomet_chakhlik",
     name: "Зигомёт Чахлика",
-    description: "Жуткий снаряд из бора. −2 поинта жертве на следующей засчитанной игре.",
+    description: "Контузия — следующая засчитанная игра жертве не даст ни одного очка опыта.",
     category: "TRAP", rarity: "RARE",
     iconKey: "trap_bolt", effectKey: "trap_zigomet",
     charges: 1, rollWeight: 6, isTrap: true,
@@ -477,7 +477,7 @@ export const ITEMS: ItemDef[] = [
   {
     id: "barin_curse",
     name: "Проклятье барина",
-    description: "Барское слово тяжело. −2 поинта жертве на следующей засчитанной игре.",
+    description: "Барское слово тяжкое — −2 поинта на следующих ДВУХ засчитанных играх жертвы.",
     category: "TRAP", rarity: "EPIC",
     iconKey: "trap_curse", effectKey: "trap_barin",
     charges: 1, rollWeight: 3, isTrap: true,
@@ -596,7 +596,7 @@ export const ITEMS: ItemDef[] = [
   {
     id: "vasilisa_perdak",
     name: "Пердак Василисы",
-    description: "Оружие чудовищной мощи. Жертва +2 хода на следующее перемещение.",
+    description: "Ударная волна сдувает жертву прямо в Хутор Душлендора (если уже там — в Чахлый Бор). Мгновенно.",
     category: "TRAP", rarity: "EPIC",
     iconKey: "trap_wind", effectKey: "trap_perdak",
     charges: 1, rollWeight: 0, isTrap: true,
@@ -604,7 +604,7 @@ export const ITEMS: ItemDef[] = [
   {
     id: "rvotnichki",
     name: "Рвотнички",
-    description: "Подложил — и жертве не до игр. +1 ход на следующее действие жертвы.",
+    description: "Похмелье у жертвы — следующий ролл игры стоит +1 ход.",
     category: "TRAP", rarity: "COMMON",
     iconKey: "trap_vomit", effectKey: "trap_rvotnichki",
     charges: 1, rollWeight: 0, isTrap: true,

@@ -4,18 +4,24 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Zap, Loader2, X } from "lucide-react";
 import type { ClassActionDef } from "@/lib/class-actions";
+import { getItemEmoji } from "@/lib/item-icons";
+import { RARITY_COLORS, type ItemRarity } from "@/lib/items";
 
 interface FuseItem {
+  inventoryItemId: string;
   itemId: string;
   itemName: string;
-  count: number;
+  rarity: string;
+  iconKey: string;
 }
 
 interface ClassActionPanelProps {
   action: ClassActionDef;
   cooldownLeftMs: number;
-  fusableItems?: FuseItem[]; // для Алхимика — список доступных к слиянию
+  fusableItems?: FuseItem[]; // для Алхимика — список инвентарных предметов на выбор
 }
+
+const FUSE_REQUIRED = 3;
 
 export default function ClassActionPanel({
   action,
@@ -26,11 +32,24 @@ export default function ClassActionPanel({
   const [modalOpen, setModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [inputValue, setInputValue] = useState("");
-  const [pickedItemId, setPickedItemId] = useState<string | null>(null);
+  const [pickedInvIds, setPickedInvIds] = useState<string[]>([]);
 
   const onCooldown = cooldownLeftMs > 0;
   const hoursLeft = Math.ceil(cooldownLeftMs / (60 * 60 * 1000));
   const unavailable = action.unavailable;
+
+  function togglePick(invId: string) {
+    setPickedInvIds((curr) => {
+      if (curr.includes(invId)) {
+        return curr.filter((x) => x !== invId);
+      }
+      if (curr.length >= FUSE_REQUIRED) {
+        // лимит — заменить самый старый
+        return [...curr.slice(1), invId];
+      }
+      return [...curr, invId];
+    });
+  }
 
   async function activate() {
     setLoading(true);
@@ -39,8 +58,8 @@ export default function ClassActionPanel({
       if (action.requiresInput) {
         payload.input = { [action.requiresInput.field]: inputValue.trim() };
       }
-      if (action.requiresItemPick && pickedItemId) {
-        payload.fuseItemId = pickedItemId;
+      if (action.requiresItemPick && pickedInvIds.length === FUSE_REQUIRED) {
+        payload.fuseItemIds = pickedInvIds;
       }
       const res = await fetch("/api/player/class-action", {
         method: "POST",
@@ -56,7 +75,7 @@ export default function ClassActionPanel({
       alert(data.message ?? "Активировано");
       setModalOpen(false);
       setInputValue("");
-      setPickedItemId(null);
+      setPickedInvIds([]);
       router.refresh();
       setLoading(false);
     } catch (e) {
@@ -266,11 +285,24 @@ export default function ClassActionPanel({
                     letterSpacing: "0.1em",
                     textTransform: "uppercase",
                     marginBottom: "0.5rem",
+                    display: "flex",
+                    justifyContent: "space-between",
                   }}
                 >
-                  Выбери что слить (нужно ≥3 одинаковых)
+                  <span>Выбери 3 предмета на слияние (любых разных)</span>
+                  <span
+                    style={{
+                      color:
+                        pickedInvIds.length === FUSE_REQUIRED
+                          ? "var(--color-gold)"
+                          : "var(--color-text-dim)",
+                      fontFamily: "var(--font-cinzel)",
+                    }}
+                  >
+                    {pickedInvIds.length}/{FUSE_REQUIRED}
+                  </span>
                 </div>
-                {fusableItems.length === 0 ? (
+                {fusableItems.length < FUSE_REQUIRED ? (
                   <div
                     style={{
                       padding: "0.75rem",
@@ -281,37 +313,64 @@ export default function ClassActionPanel({
                       fontStyle: "italic",
                     }}
                   >
-                    У тебя нет 3 одинаковых расходников/экипировки
+                    У тебя в инвентаре меньше 3 расходников/экипировки. Накопи —
+                    легендарки и косметика в котёл не идут.
                   </div>
                 ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-                    {fusableItems.map((it) => (
-                      <button
-                        key={it.itemId}
-                        onClick={() => setPickedItemId(it.itemId)}
-                        style={{
-                          padding: "0.6rem 0.8rem",
-                          background:
-                            pickedItemId === it.itemId
-                              ? "rgba(212,165,116,0.15)"
-                              : "var(--color-bg)",
-                          border: `1px solid ${
-                            pickedItemId === it.itemId ? "var(--color-gold)" : "var(--color-border-bright)"
-                          }`,
-                          color:
-                            pickedItemId === it.itemId ? "var(--color-gold)" : "var(--color-text)",
-                          fontSize: "0.85rem",
-                          fontFamily: "inherit",
-                          cursor: "pointer",
-                          textAlign: "left",
-                          display: "flex",
-                          justifyContent: "space-between",
-                        }}
-                      >
-                        <span>{it.itemName}</span>
-                        <span style={{ color: "var(--color-text-dim)" }}>×{it.count}</span>
-                      </button>
-                    ))}
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+                      gap: "0.4rem",
+                      maxHeight: "260px",
+                      overflowY: "auto",
+                    }}
+                  >
+                    {fusableItems.map((it) => {
+                      const picked = pickedInvIds.includes(it.inventoryItemId);
+                      const colors = RARITY_COLORS[it.rarity as ItemRarity] ?? RARITY_COLORS.COMMON;
+                      const order = picked ? pickedInvIds.indexOf(it.inventoryItemId) + 1 : null;
+                      return (
+                        <button
+                          key={it.inventoryItemId}
+                          onClick={() => togglePick(it.inventoryItemId)}
+                          style={{
+                            position: "relative",
+                            padding: "0.6rem 0.5rem",
+                            background: picked ? "rgba(212,165,116,0.15)" : "var(--color-bg)",
+                            border: `1px solid ${picked ? "var(--color-gold)" : colors.border}`,
+                            color: picked ? "var(--color-gold)" : colors.text,
+                            fontSize: "0.8rem",
+                            fontFamily: "inherit",
+                            cursor: "pointer",
+                            textAlign: "center",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: "0.3rem",
+                          }}
+                        >
+                          {order !== null && (
+                            <span
+                              style={{
+                                position: "absolute",
+                                top: "4px",
+                                right: "6px",
+                                fontSize: "0.7rem",
+                                color: "var(--color-gold)",
+                                fontFamily: "var(--font-cinzel)",
+                              }}
+                            >
+                              {order}
+                            </span>
+                          )}
+                          <span style={{ fontSize: "1.6rem", lineHeight: 1 }}>
+                            {getItemEmoji(it.iconKey)}
+                          </span>
+                          <span style={{ lineHeight: 1.2 }}>{it.itemName}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -340,14 +399,14 @@ export default function ClassActionPanel({
                 disabled={
                   loading ||
                   (!!action.requiresInput && inputValue.trim().length < 3) ||
-                  (!!action.requiresItemPick && !pickedItemId)
+                  (!!action.requiresItemPick && pickedInvIds.length !== FUSE_REQUIRED)
                 }
                 className="btn-dark"
                 style={{
                   opacity:
                     loading ||
                     (!!action.requiresInput && inputValue.trim().length < 3) ||
-                    (!!action.requiresItemPick && !pickedItemId)
+                    (!!action.requiresItemPick && pickedInvIds.length !== FUSE_REQUIRED)
                       ? 0.5
                       : 1,
                 }}

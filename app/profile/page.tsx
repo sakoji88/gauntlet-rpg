@@ -106,29 +106,35 @@ export default async function ProfilePage() {
     }
   }
 
-  // Список fusable items для Алхимика (по 3+ одинаковых, расходники/экипировка)
-  let fusableItems: { itemId: string; itemName: string; count: number }[] = [];
+  // Список fusable inventoryItems для Алхимика — все расходники/экипировка
+  // (кроме легендарок), без группировки. Игрок выберет 3 любых разных.
+  let fusableItems: {
+    inventoryItemId: string;
+    itemId: string;
+    itemName: string;
+    rarity: string;
+    iconKey: string;
+  }[] = [];
   if (playerFromDb.class === "alchemist") {
-    const grouped = await prisma.inventoryItem.groupBy({
-      by: ["itemId"],
+    const stash = await prisma.inventoryItem.findMany({
       where: {
         playerId: playerFromDb.id,
         charges: { gt: 0 },
-        item: { category: { in: ["CONSUMABLE", "EQUIPMENT"] } },
+        item: {
+          category: { in: ["CONSUMABLE", "EQUIPMENT"] },
+          rarity: { not: "LEGENDARY" },
+        },
       },
-      _count: { _all: true },
+      include: { item: true },
+      orderBy: { obtainedAt: "asc" },
     });
-    const tripleStacks = grouped.filter((g: typeof grouped[number]) => g._count._all >= 3);
-    if (tripleStacks.length > 0) {
-      const items = await prisma.item.findMany({
-        where: { id: { in: tripleStacks.map((g: typeof tripleStacks[number]) => g.itemId) } },
-      });
-      fusableItems = tripleStacks.map((g: typeof tripleStacks[number]) => ({
-        itemId: g.itemId,
-        itemName: items.find((i: typeof items[number]) => i.id === g.itemId)?.name ?? g.itemId,
-        count: g._count._all,
-      }));
-    }
+    fusableItems = stash.map((inv: typeof stash[number]) => ({
+      inventoryItemId: inv.id,
+      itemId: inv.itemId,
+      itemName: inv.item.name,
+      rarity: inv.item.rarity,
+      iconKey: inv.item.iconKey,
+    }));
   }
 
   // Последние пройденные/дропнутые игры (для лога)

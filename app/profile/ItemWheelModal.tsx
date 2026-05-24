@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Sparkles, X } from "lucide-react";
 import { RARITY_COLORS, RARITY_NAMES, CATEGORY_NAMES, ItemRarity, ItemCategory } from "@/lib/items";
+import { getItemEmoji } from "@/lib/item-icons";
 
 interface RolledItem {
   id: string;
@@ -182,29 +183,51 @@ export default function ItemWheelModal({ gameId, onClose }: ItemWheelModalProps)
                   >
                     <div style={{
                       display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: "0.25rem",
+                      alignItems: "flex-start",
+                      gap: "0.6rem",
                     }}>
-                      <span style={{ color: colors.text, fontWeight: 600 }}>{c.name}</span>
-                      <span style={{
-                        fontSize: "0.65rem",
-                        color: colors.text,
-                        opacity: 0.7,
-                        letterSpacing: "0.15em",
-                        textTransform: "uppercase",
-                      }}>
-                        {RARITY_NAMES[c.rarity]}
+                      <span
+                        aria-hidden
+                        style={{
+                          fontSize: "2rem",
+                          lineHeight: 1,
+                          width: "44px",
+                          textAlign: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {getItemEmoji(c.iconKey)}
                       </span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: "0.25rem",
+                          gap: "0.5rem",
+                        }}>
+                          <span style={{ color: colors.text, fontWeight: 600 }}>{c.name}</span>
+                          <span style={{
+                            fontSize: "0.65rem",
+                            color: colors.text,
+                            opacity: 0.7,
+                            letterSpacing: "0.15em",
+                            textTransform: "uppercase",
+                            whiteSpace: "nowrap",
+                          }}>
+                            {RARITY_NAMES[c.rarity]}
+                          </span>
+                        </div>
+                        <p style={{
+                          fontSize: "0.85rem",
+                          color: "var(--color-text-dim)",
+                          lineHeight: 1.5,
+                          margin: 0,
+                        }}>
+                          {c.description}
+                        </p>
+                      </div>
                     </div>
-                    <p style={{
-                      fontSize: "0.85rem",
-                      color: "var(--color-text-dim)",
-                      lineHeight: 1.5,
-                      margin: 0,
-                    }}>
-                      {c.description}
-                    </p>
                   </button>
                 );
               })}
@@ -243,6 +266,17 @@ function ResultView({ item, onClose }: { item: RolledItem; onClose: () => void }
         "--glow-color": colors.glow,
         animation: item.rarity === "LEGENDARY" ? "glow 2s ease-in-out infinite" : "none",
       }}>
+        <div
+          aria-hidden
+          style={{
+            fontSize: "5rem",
+            lineHeight: 1,
+            marginBottom: "0.75rem",
+            filter: `drop-shadow(0 0 18px ${colors.glow})`,
+          }}
+        >
+          {getItemEmoji(item.iconKey)}
+        </div>
         <div style={{
           fontSize: "0.7rem",
           color: colors.text,

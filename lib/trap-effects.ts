@@ -1,124 +1,159 @@
-// Реестр ловушек. Каждая запись:
-//   itemEffectKey — что стоит в Item.effectKey (см. items.ts)
-//   buffKey       — что положим в Player.activeBuffs у жертвы
-//   description   — для UI
-//   payload       — параметры эффекта (например, насколько +1 или +2)
+// Реестр ловушек.
+//
+// Каждая ловушка имеет один из двух режимов:
+//   - "buff"    — навешивает effectKey в Player.activeBuffs у жертвы.
+//                 Эффект отрабатывается в соответствующих роутах (move/roll/finish).
+//   - "instant" — отрабатывается сразу в момент броска (api/player/trap/throw).
+//                 Никакого buff на жертве не висит.
+
+export type TrapMode = "buff" | "instant";
 
 export interface TrapDef {
   itemEffectKey: string;     // ключ предмета (item.effectKey)
-  buffKey: string;           // ключ бафа у жертвы
   itemId: string;            // ID предмета в БД
   name: string;
-  description: string;
-  // Категория применения — где сработает бафф
-  appliesTo: "move" | "any_action" | "next_complete";
-  // Сила эффекта (для move/any_action — на сколько +ходов; для complete — на сколько -поинтов)
+  mode: TrapMode;
+  // Для buff-режима:
+  buffKey?: string;          // что положим в Player.activeBuffs у жертвы
+  // Где сработает buff (информативно, для будущей системы UI/иммунитетов).
+  appliesTo?: "move" | "any_action" | "roll" | "next_complete" | "stink" | "curse_x2";
+  // Сила/счётчик. Для счётчиков (Зловоние, Двойное Проклятье) — это число тиков.
   magnitude: number;
+  // Для instant-режима:
+  instantKind?:
+    | "steal_gold"      // Крыса: украсть N Злата → бросающему
+    | "burn_charge"     // Огнемёт: сжечь 1 заряд случайному предмету жертвы
+    | "drain_gold"      // Дрисево: списать N Злата у жертвы (без передачи)
+    | "teleport_home"   // Пердак: швырнуть жертву в Хутор (или Чахлый Бор если уже там)
+    | "lose_random_item"; // Поддельный Квест: удалить случайный consumable у жертвы
+  description: string;       // краткое описание для UI/сообщений
 }
 
 export const TRAPS: TrapDef[] = [
+  // ===== БАЗОВЫЕ (механики не меняем — игроки уже их знают) =====
   {
     itemEffectKey: "trap_slow",
-    buffKey: "trap_slow",
     itemId: "rake",
     name: "Грабли",
-    description: "+1 ход на следующее перемещение жертвы",
+    mode: "buff",
+    buffKey: "trap_slow",
     appliesTo: "move",
     magnitude: 1,
+    description: "+1 ход на следующее перемещение жертвы",
   },
   {
     itemEffectKey: "trap_extra_cost",
-    buffKey: "trap_extra_cost",
     itemId: "sticky_slime",
     name: "Липкая Жижа",
-    description: "+1 ход на следующее действие жертвы (перемещение или ролл)",
+    mode: "buff",
+    buffKey: "trap_extra_cost",
     appliesTo: "any_action",
     magnitude: 1,
+    description: "+1 ход на следующее действие жертвы",
   },
   {
     itemEffectKey: "trap_points",
-    buffKey: "trap_points",
     itemId: "rotten_shawarma",
     name: "Тухлая Шаурма",
-    description: "−2 поинта на следующей засчитанной игре жертвы",
+    mode: "buff",
+    buffKey: "trap_points",
     appliesTo: "next_complete",
     magnitude: 2,
+    description: "−2 поинта на следующей засчитанной игре жертвы",
+  },
+
+  // ===== НОВЫЕ buff-эффекты =====
+  {
+    // Зловоние: +1 ход на следующих 2-х перемещениях.
+    // Счётчик хранится в payload.remaining.
+    itemEffectKey: "trap_shitbag",
+    itemId: "shit_bag_chakhlik",
+    name: "Сральный пакет Чахлика",
+    mode: "buff",
+    buffKey: "trap_stink",
+    appliesTo: "stink",
+    magnitude: 2,
+    description: "+1 ход на следующие ДВА перемещения жертвы (вонь долго не выветривается)",
+  },
+  {
+    // Похмелье: следующий ролл игры жертве стоит +1 ход.
+    itemEffectKey: "trap_rvotnichki",
+    itemId: "rvotnichki",
+    name: "Рвотнички",
+    mode: "buff",
+    buffKey: "trap_roll_extra",
+    appliesTo: "roll",
+    magnitude: 1,
+    description: "Следующий ролл игры жертве стоит +1 ход",
+  },
+  {
+    // Контузия: следующая засчитанная игра не даст EXP.
+    itemEffectKey: "trap_zigomet",
+    itemId: "zigomet_chakhlik",
+    name: "Зигомёт Чахлика",
+    mode: "buff",
+    buffKey: "trap_no_exp",
+    appliesTo: "next_complete",
+    magnitude: 0,
+    description: "Следующая засчитанная игра жертве не даст опыт",
+  },
+  {
+    // Двойное проклятье: −2 поинта на следующих ДВУХ играх.
+    itemEffectKey: "trap_barin",
+    itemId: "barin_curse",
+    name: "Проклятье барина",
+    mode: "buff",
+    buffKey: "trap_curse_x2",
+    appliesTo: "curse_x2",
+    magnitude: 2, // тиков (игр), на каждой −2 поинта
+    description: "−2 поинта на следующих ДВУХ засчитанных играх",
+  },
+
+  // ===== НОВЫЕ instant-эффекты =====
+  {
+    itemEffectKey: "trap_drisevo",
+    itemId: "mexican_drisevo",
+    name: "Мексиканское дрисево",
+    mode: "instant",
+    instantKind: "drain_gold",
+    magnitude: 5,
+    description: "Жертва бежит срочно — теряет 5 Злата",
   },
   {
     itemEffectKey: "trap_strong_slow",
-    buffKey: "trap_strong_slow",
     itemId: "rat",
     name: "Крыса",
-    description: "+2 хода на следующее перемещение жертвы",
-    appliesTo: "move",
-    magnitude: 2,
-  },
-
-  // ===== Ловушки сезона 2 =====
-  // itemEffectKey уникален (привязка предмет→ловушка), buffKey переиспользует
-  // существующие — чтобы move/finish-роуты уже умели их обрабатывать.
-  {
-    itemEffectKey: "trap_drisevo",
-    buffKey: "trap_extra_cost",
-    itemId: "mexican_drisevo",
-    name: "Мексиканское дрисево",
-    description: "+1 ход на следующее действие жертвы",
-    appliesTo: "any_action",
-    magnitude: 1,
-  },
-  {
-    itemEffectKey: "trap_shitbag",
-    buffKey: "trap_slow",
-    itemId: "shit_bag_chakhlik",
-    name: "Сральный пакет Чахлика",
-    description: "+1 ход на следующее перемещение жертвы",
-    appliesTo: "move",
-    magnitude: 1,
+    mode: "instant",
+    instantKind: "steal_gold",
+    magnitude: 10,
+    description: "Крыса крадёт 10 Злата у жертвы и приносит бросающему",
   },
   {
     itemEffectKey: "trap_flamethrower",
-    buffKey: "trap_strong_slow",
     itemId: "flamethrower_dushik",
     name: "Огнемёт душика",
-    description: "+2 хода на следующее перемещение жертвы",
-    appliesTo: "move",
-    magnitude: 2,
+    mode: "instant",
+    instantKind: "burn_charge",
+    magnitude: 1,
+    description: "Сгорает 1 заряд случайного предмета в инвентаре жертвы",
   },
   {
-    itemEffectKey: "trap_zigomet",
-    buffKey: "trap_points",
-    itemId: "zigomet_chakhlik",
-    name: "Зигомёт Чахлика",
-    description: "−2 поинта на следующей засчитанной игре жертвы",
-    appliesTo: "next_complete",
-    magnitude: 2,
-  },
-  {
-    itemEffectKey: "trap_barin",
-    buffKey: "trap_points",
-    itemId: "barin_curse",
-    name: "Проклятье барина",
-    description: "−2 поинта на следующей засчитанной игре жертвы",
-    appliesTo: "next_complete",
-    magnitude: 2,
+    itemEffectKey: "trap_fake_quest",
+    itemId: "fake_quest",
+    name: "Поддельный Квест",
+    mode: "instant",
+    instantKind: "lose_random_item",
+    magnitude: 1,
+    description: "Жертва уходит на ложный путь и теряет случайный расходник",
   },
   {
     itemEffectKey: "trap_perdak",
-    buffKey: "trap_strong_slow",
     itemId: "vasilisa_perdak",
     name: "Пердак Василисы",
-    description: "+2 хода на следующее перемещение жертвы",
-    appliesTo: "move",
-    magnitude: 2,
-  },
-  {
-    itemEffectKey: "trap_rvotnichki",
-    buffKey: "trap_extra_cost",
-    itemId: "rvotnichki",
-    name: "Рвотнички",
-    description: "+1 ход на следующее действие жертвы",
-    appliesTo: "any_action",
-    magnitude: 1,
+    mode: "instant",
+    instantKind: "teleport_home",
+    magnitude: 0,
+    description: "Жертву сдувает в Хутор Душлендора (если уже там — в Чахлый Бор)",
   },
 ];
 
@@ -134,5 +169,8 @@ export function getTrapByBuffKey(buffKey: string): TrapDef | null {
   return TRAPS.find((t) => t.buffKey === buffKey) ?? null;
 }
 
-// Все buff-keys которые относятся к ловушкам (для удобного фильтра в UI и проверках)
-export const TRAP_BUFF_KEYS = TRAPS.map((t) => t.buffKey);
+// Все buff-keys, которые относятся к ловушкам (для фильтрации в UI и в эффектах,
+// которые "снимают все дебаффы": ромашковый чай, анализы Душика и т.п.).
+export const TRAP_BUFF_KEYS = TRAPS
+  .filter((t) => t.mode === "buff" && t.buffKey)
+  .map((t) => t.buffKey as string);

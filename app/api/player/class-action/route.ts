@@ -174,37 +174,85 @@ export async function POST(req: Request) {
   }
 
   // ===== Алхимик — Алхимия =====
+  // Принимает либо новый формат { fuseItemIds: string[] } (3 любых разных inventoryItem.id),
+  // либо старый { fuseItemId: string } (тогда возьмём 3 одинаковых) — обратная совместимость.
   if (action.key === "alchemy") {
-    const fuseItemId = (body?.fuseItemId ?? "").toString().trim();
-    if (!fuseItemId) {
+    const rawIds = Array.isArray(body?.fuseItemIds) ? body.fuseItemIds : null;
+    const legacyId = (body?.fuseItemId ?? "").toString().trim();
+
+    // --- Резолвим список из 3 inventoryItem ---
+    // Включаем relation item — нужны name/category/rarity ингредиентов.
+    type StashRow = Awaited<
+      ReturnType<typeof prisma.inventoryItem.findMany<{ include: { item: true } }>>
+    >[number];
+    let stash: StashRow[] = [];
+
+    if (rawIds) {
+      // Новый формат: 3 inventoryItem.id (разные).
+      const ids: string[] = rawIds
+        .filter((x: unknown): x is string => typeof x === "string")
+        .map((x: string) => x.trim())
+        .filter((x: string) => x.length > 0);
+      if (ids.length !== 3) {
+        return NextResponse.json(
+          { error: "Нужно выбрать ровно 3 предмета" },
+          { status: 400 },
+        );
+      }
+      if (new Set(ids).size !== 3) {
+        return NextResponse.json(
+          { error: "Слоты должны быть разными (нельзя положить один предмет дважды)" },
+          { status: 400 },
+        );
+      }
+      stash = await prisma.inventoryItem.findMany({
+        where: { id: { in: ids }, playerId: player.id, charges: { gt: 0 } },
+        include: { item: true },
+      });
+      if (stash.length !== 3) {
+        return NextResponse.json(
+          { error: "Не все выбранные предметы найдены в твоём инвентаре" },
+          { status: 400 },
+        );
+      }
+    } else if (legacyId) {
+      // Старый формат: 3 одинаковых.
+      stash = await prisma.inventoryItem.findMany({
+        where: { playerId: player.id, itemId: legacyId, charges: { gt: 0 } },
+        include: { item: true },
+        orderBy: { obtainedAt: "asc" },
+      });
+      if (stash.length < 3) {
+        return NextResponse.json(
+          { error: "Нужно 3 предмета. Старый формат требовал 3 одинаковых — но теперь можно выбрать 3 любых." },
+          { status: 400 },
+        );
+      }
+      stash = stash.slice(0, 3);
+    } else {
       return NextResponse.json(
-        { error: "Не указан предмет для слияния" },
+        { error: "Не указаны предметы для слияния (передай fuseItemIds: string[] из 3 inventoryItem.id)" },
         { status: 400 },
       );
     }
 
-    // Найдём у игрока 3 одинаковых
-    const stash = await prisma.inventoryItem.findMany({
-      where: { playerId: player.id, itemId: fuseItemId, charges: { gt: 0 } },
-      include: { item: true },
-      orderBy: { obtainedAt: "asc" },
-    });
-    if (stash.length < 3) {
-      return NextResponse.json(
-        { error: "Нужно 3 одинаковых предмета в инвентаре" },
-        { status: 400 },
-      );
+    // --- Проверяем категории/редкости (каждого ингредиента) ---
+    for (const inv of stash) {
+      if (inv.item.category !== "CONSUMABLE" && inv.item.category !== "EQUIPMENT") {
+        return NextResponse.json(
+          { error: `Сливать можно только расходники или экипировку — «${inv.item.name}» не подходит` },
+          { status: 400 },
+        );
+      }
+      if (inv.item.rarity === "LEGENDARY") {
+        return NextResponse.json(
+          { error: `Легендарки в котёл не лезут — «${inv.item.name}»` },
+          { status: 400 },
+        );
+      }
     }
 
-    const sample = stash[0].item;
-    if (sample.category !== "CONSUMABLE" && sample.category !== "EQUIPMENT") {
-      return NextResponse.json(
-        { error: "Сливать можно только расходники или экипировку" },
-        { status: 400 },
-      );
-    }
-
-    // Тянем случайный артефакт (rollWeight > 0)
+    // --- Тянем случайный артефакт ---
     const artifacts = await prisma.item.findMany({
       where: { category: "ARTIFACT", rollWeight: { gt: 0 } },
     });
@@ -219,10 +267,9 @@ export async function POST(req: Request) {
       if (r <= 0) { chosen = a; break; }
     }
 
-    // Транзакция: убрать 3, добавить артефакт, обновить cooldown
-    const toRemove = stash.slice(0, 3);
+    // --- Транзакция: удалить 3, выдать артефакт, обновить cooldown ---
     await prisma.$transaction([
-      ...toRemove.map((inv: typeof toRemove[number]) =>
+      ...stash.map((inv: typeof stash[number]) =>
         prisma.inventoryItem.delete({ where: { id: inv.id } }),
       ),
       prisma.inventoryItem.create({
@@ -238,9 +285,10 @@ export async function POST(req: Request) {
       }),
     ]);
 
+    const ingredientList = stash.map((inv: typeof stash[number]) => `«${inv.item.name}»`).join(", ");
     return NextResponse.json({
       success: true,
-      message: `Котёл закипел. Слилось 3× «${sample.name}» → выпал «${chosen.name}» (${chosen.rarity}).`,
+      message: `Котёл закипел. Слилось ${ingredientList} → выпал «${chosen.name}» (${chosen.rarity}).`,
       artifact: {
         id: chosen.id,
         name: chosen.name,

@@ -9,6 +9,8 @@ import {
   removeBuff,
   serializeActiveBuffs,
   hasBuff,
+  findBuff,
+  addBuff,
 } from "@/lib/active-buffs";
 import { hasPassiveEffect } from "@/lib/item-effects";
 import { TRAP_BUFF_KEYS } from "@/lib/trap-effects";
@@ -175,6 +177,8 @@ export async function POST(req: Request) {
     }
     // Ловушка Тухлая Шаурма — −2 поинта
     if (hasBuff(buffs, "trap_points")) activeTrapKeys.push("rotten_shawarma");
+    // Двойное Проклятье барина — −2 поинта (срабатывает 2 раза подряд через счётчик)
+    if (hasBuff(buffs, "trap_curse_x2")) activeTrapKeys.push("barin_curse");
     // Пассивная Кольцо Жадности — даёт +1 поинт за игру
     if (await hasPassiveEffect(player.id, "greed")) activeBuffKeys.push("greed_ring");
     // Баффы-расходники «+поинты / ×множитель следующей игре»
@@ -270,6 +274,26 @@ export async function POST(req: Request) {
     if (hasBuff(buffs, "trap_points")) {
       updatedBuffs = removeBuff(updatedBuffs, "trap_points");
     }
+    // Двойное Проклятье: уменьшаем счётчик remaining, снимаем когда станет 0.
+    const curseBuff = findBuff(updatedBuffs, "trap_curse_x2");
+    if (curseBuff) {
+      const rawRemaining = curseBuff.payload?.remaining;
+      const remaining =
+        typeof rawRemaining === "number" && rawRemaining > 0 ? rawRemaining : 2;
+      const nextRemaining = remaining - 1;
+      updatedBuffs = removeBuff(updatedBuffs, "trap_curse_x2");
+      if (nextRemaining > 0) {
+        updatedBuffs = addBuff(updatedBuffs, {
+          ...curseBuff,
+          payload: { ...curseBuff.payload, remaining: nextRemaining },
+        });
+      }
+    }
+    // Контузия (Зигомёт Чахлика): обнулим EXP за эту игру и снимем бафф.
+    const concussionActive = hasBuff(updatedBuffs, "trap_no_exp");
+    if (concussionActive) {
+      updatedBuffs = removeBuff(updatedBuffs, "trap_no_exp");
+    }
     for (const key of ["points_next_2", "points_next_3", "points_next_5", "points_mult_next"]) {
       if (hasBuff(buffs, key)) updatedBuffs = removeBuff(updatedBuffs, key);
     }
@@ -284,8 +308,10 @@ export async function POST(req: Request) {
     if (hasBuff(buffs, "lucky_loser")) updatedBuffs = removeBuff(updatedBuffs, "lucky_loser");
     if (hasBuff(buffs, "coin_flip_next")) updatedBuffs = removeBuff(updatedBuffs, "coin_flip_next");
     if (hasBuff(buffs, "mini_coin_flip")) updatedBuffs = removeBuff(updatedBuffs, "mini_coin_flip");
+    // Двойное Проклятье обновляет payload без изменения длины — отдельный флаг.
+    const curseCountChanged = Boolean(curseBuff);
     const buffsJson =
-      updatedBuffs.length !== buffs.length
+      updatedBuffs.length !== buffs.length || curseCountChanged
         ? serializeActiveBuffs(updatedBuffs)
         : null; // null = не обновляем
 
@@ -313,7 +339,10 @@ export async function POST(req: Request) {
     let goldGain = GOLD_PER_COMPLETION + (hasGoldFind ? 2 : 0) + bazarBonus;
     if (goldDoubleActive) goldGain *= 2; // Чизкейк Нью-Йорк
 
-    const expGain = EXP_PER_COMPLETION * (expDoubleActive ? 2 : 1);
+    // Контузия от Зигомёта Чахлика — обнуляет EXP за эту игру.
+    const expGain = concussionActive
+      ? 0
+      : EXP_PER_COMPLETION * (expDoubleActive ? 2 : 1);
 
     await prisma.player.update({
       where: { id: player.id },

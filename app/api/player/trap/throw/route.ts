@@ -8,7 +8,7 @@ import {
   removeBuff,
   hasBuff,
 } from "@/lib/active-buffs";
-import { getTrapByItemId } from "@/lib/trap-effects";
+import { getTrapByItemId, type TrapDef } from "@/lib/trap-effects";
 
 // Бросить ловушку в другого игрока.
 // Тело: { inventoryItemId: string, targetPlayerId: string }
@@ -16,13 +16,12 @@ import { getTrapByItemId } from "@/lib/trap-effects";
 // Логика:
 //   1. У броска́ющего есть этот предмет в инвентаре, он — TRAP.
 //   2. Цель — другой игрок (не сам себе).
-//   3. Цель не имеет уже активной такой же ловушки (одна ловушка одного типа за раз).
-//   4. У Урки активка "Подкидыш" бесплатная (0 ходов) — для других классов −1 ход.
-//
-// Транзакция:
-//   - Декремент charges (удалить если 0)
-//   - Добавить bafa цели
-//   - У броска́ющего списать 1 ход (если не Урка)
+//   3. Для buff-ловушек: у цели не должно быть уже активной такой же.
+//   4. Для instant-ловушек: ограничение не нужно — эффект применяется сразу.
+//   5. У Урки активка "Подкидыш" бесплатная (0 ходов) — для других классов 1 ход.
+
+const TELEPORT_HOME_PRIMARY = "khutor";
+const TELEPORT_HOME_FALLBACK = "chakhly-bor";
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -85,9 +84,10 @@ export async function POST(req: Request) {
     );
   }
 
-  // Проверяем что у цели нет уже такой ловушки
   const targetBuffs = parseActiveBuffs(target.activeBuffs);
-  if (hasBuff(targetBuffs, trap.buffKey)) {
+
+  // Для buff-ловушек: проверка дубля
+  if (trap.mode === "buff" && trap.buffKey && hasBuff(targetBuffs, trap.buffKey)) {
     return NextResponse.json(
       { error: "У цели уже висит такая ловушка" },
       { status: 400 },
@@ -95,8 +95,6 @@ export async function POST(req: Request) {
   }
 
   // Защита «Разьёбанный балкон Попова» — гасит первую брошенную ловушку.
-  // Предмет-ловушка у атакующего тратится, у цели сжигается защитный бафф,
-  // но саму ловушку не вешаем.
   const protectedByBalcony = hasBuff(targetBuffs, "protect_from_trap");
   if (protectedByBalcony) {
     await prisma.$transaction(async (tx) => {
@@ -138,47 +136,239 @@ export async function POST(req: Request) {
     );
   }
 
-  // Готовим обновлённый список баффов цели
+  // ===== Развилка по режиму =====
+  if (trap.mode === "buff") {
+    const message = await applyBuffTrap({
+      trap,
+      targetBuffs,
+      targetId: target.id,
+      targetNickname: target.nickname,
+      throwerId: player.id,
+      throwerNickname: player.nickname,
+      invItemId: invItem.id,
+      invItemCharges: invItem.charges,
+      energyCost,
+    });
+    return NextResponse.json({
+      success: true,
+      message,
+      cost: energyCost,
+      free: energyCost === 0,
+    });
+  }
+
+  // mode === "instant"
+  const result = await applyInstantTrap({
+    trap,
+    target,
+    thrower: player,
+    invItemId: invItem.id,
+    invItemCharges: invItem.charges,
+    energyCost,
+  });
+  return NextResponse.json({
+    success: true,
+    message: result.message,
+    cost: energyCost,
+    free: energyCost === 0,
+    ...result.extra,
+  });
+}
+
+// ===== BUFF-ЛОВУШКИ =====
+async function applyBuffTrap(args: {
+  trap: TrapDef;
+  targetBuffs: ReturnType<typeof parseActiveBuffs>;
+  targetId: string;
+  targetNickname: string;
+  throwerId: string;
+  throwerNickname: string;
+  invItemId: string;
+  invItemCharges: number;
+  energyCost: number;
+}): Promise<string> {
+  const {
+    trap, targetBuffs, targetId, targetNickname, throwerId, throwerNickname,
+    invItemId, invItemCharges, energyCost,
+  } = args;
+  if (!trap.buffKey) throw new Error("buffKey is required for buff trap");
+
+  // Для эффектов со счётчиком (Зловоние, Двойное Проклятье) кладём remaining в payload.
+  const payload: Record<string, unknown> = {
+    thrower: throwerId,
+    throwerNickname,
+    magnitude: trap.magnitude,
+  };
+  if (trap.appliesTo === "stink" || trap.appliesTo === "curse_x2") {
+    payload.remaining = trap.magnitude;
+  }
+
   const newTargetBuffs = addBuff(targetBuffs, {
     effectKey: trap.buffKey,
     sourceItemId: trap.itemId,
     activatedAt: new Date().toISOString(),
-    payload: {
-      thrower: player.id,
-      throwerNickname: player.nickname,
-      magnitude: trap.magnitude,
-    },
+    payload,
   });
 
-  // Транзакция
   await prisma.$transaction(async (tx) => {
-    // Декремент / удаление предмета
-    if (invItem.charges <= 1) {
-      await tx.inventoryItem.delete({ where: { id: invItem.id } });
+    if (invItemCharges <= 1) {
+      await tx.inventoryItem.delete({ where: { id: invItemId } });
     } else {
       await tx.inventoryItem.update({
-        where: { id: invItem.id },
+        where: { id: invItemId },
         data: { charges: { decrement: 1 } },
       });
     }
-    // Бафф на цель
     await tx.player.update({
-      where: { id: target.id },
+      where: { id: targetId },
       data: { activeBuffs: serializeActiveBuffs(newTargetBuffs) },
     });
-    // Списать ход с броска́ющего (если не Урка)
     if (energyCost > 0) {
       await tx.player.update({
-        where: { id: player.id },
+        where: { id: throwerId },
         data: { energy: { decrement: energyCost } },
       });
     }
   });
 
-  return NextResponse.json({
-    success: true,
-    message: `«${trap.name}» — летит в ${target.nickname}!`,
-    cost: energyCost,
-    free: energyCost === 0,
+  return `«${trap.name}» — летит в ${targetNickname}!`;
+}
+
+// ===== INSTANT-ЛОВУШКИ =====
+async function applyInstantTrap(args: {
+  trap: TrapDef;
+  target: { id: string; nickname: string; gold: number; currentRegion: string | null };
+  thrower: { id: string; nickname: string; class: string | null };
+  invItemId: string;
+  invItemCharges: number;
+  energyCost: number;
+}): Promise<{ message: string; extra?: Record<string, unknown> }> {
+  const { trap, target, thrower, invItemId, invItemCharges, energyCost } = args;
+
+  // Общие операции (декремент предмета, списание хода) — выполним внутри транзакции.
+  return await prisma.$transaction(async (tx) => {
+    // 1. Сжигаем ловушку у бросающего
+    if (invItemCharges <= 1) {
+      await tx.inventoryItem.delete({ where: { id: invItemId } });
+    } else {
+      await tx.inventoryItem.update({
+        where: { id: invItemId },
+        data: { charges: { decrement: 1 } },
+      });
+    }
+    // 2. Списываем ход (если не Урка)
+    if (energyCost > 0) {
+      await tx.player.update({
+        where: { id: thrower.id },
+        data: { energy: { decrement: energyCost } },
+      });
+    }
+
+    // 3. Применяем эффект
+    switch (trap.instantKind) {
+      case "steal_gold": {
+        const amount = Math.min(trap.magnitude, target.gold);
+        if (amount > 0) {
+          await tx.player.update({
+            where: { id: target.id },
+            data: { gold: { decrement: amount } },
+          });
+          await tx.player.update({
+            where: { id: thrower.id },
+            data: { gold: { increment: amount } },
+          });
+        }
+        const msg = amount > 0
+          ? `«${trap.name}» — Крыса юркнула под ноги ${target.nickname} и принесла тебе ${amount} Злата!`
+          : `«${trap.name}» — Крыса прибежала, но у ${target.nickname} в карманах пусто.`;
+        return { message: msg, extra: { goldStolen: amount } };
+      }
+
+      case "drain_gold": {
+        const amount = Math.min(trap.magnitude, target.gold);
+        if (amount > 0) {
+          await tx.player.update({
+            where: { id: target.id },
+            data: { gold: { decrement: amount } },
+          });
+        }
+        const msg = amount > 0
+          ? `«${trap.name}» — ${target.nickname} побежал срочно и обронил ${amount} Злата.`
+          : `«${trap.name}» — ${target.nickname} побежал, но терять было нечего.`;
+        return { message: msg, extra: { goldDrained: amount } };
+      }
+
+      case "burn_charge": {
+        const candidates = await tx.inventoryItem.findMany({
+          where: {
+            playerId: target.id,
+            charges: { gt: 0 },
+            item: { category: { in: ["CONSUMABLE", "EQUIPMENT", "TRAP"] } },
+          },
+          include: { item: true },
+        });
+        if (candidates.length === 0) {
+          return {
+            message: `«${trap.name}» — у ${target.nickname} в инвентаре нечему гореть.`,
+            extra: { burned: null },
+          };
+        }
+        const victim = candidates[Math.floor(Math.random() * candidates.length)];
+        if (victim.charges <= 1) {
+          await tx.inventoryItem.delete({ where: { id: victim.id } });
+        } else {
+          await tx.inventoryItem.update({
+            where: { id: victim.id },
+            data: { charges: { decrement: 1 } },
+          });
+        }
+        return {
+          message: `«${trap.name}» — у ${target.nickname} обуглился предмет «${victim.item.name}» (заряд сгорел).`,
+          extra: { burned: { id: victim.itemId, name: victim.item.name } },
+        };
+      }
+
+      case "lose_random_item": {
+        const candidates = await tx.inventoryItem.findMany({
+          where: {
+            playerId: target.id,
+            charges: { gt: 0 },
+            item: { category: "CONSUMABLE", rarity: { not: "LEGENDARY" } },
+          },
+          include: { item: true },
+        });
+        if (candidates.length === 0) {
+          return {
+            message: `«${trap.name}» — ${target.nickname} ушёл по ложному следу, но терять ему нечего (расходников нет).`,
+            extra: { lost: null },
+          };
+        }
+        const victim = candidates[Math.floor(Math.random() * candidates.length)];
+        // Расходник просто пропадает целиком (вне зависимости от charges)
+        await tx.inventoryItem.delete({ where: { id: victim.id } });
+        return {
+          message: `«${trap.name}» — ${target.nickname} ушёл по ложному следу и потерял «${victim.item.name}».`,
+          extra: { lost: { id: victim.itemId, name: victim.item.name } },
+        };
+      }
+
+      case "teleport_home": {
+        const dest =
+          target.currentRegion === TELEPORT_HOME_PRIMARY
+            ? TELEPORT_HOME_FALLBACK
+            : TELEPORT_HOME_PRIMARY;
+        await tx.player.update({
+          where: { id: target.id },
+          data: { currentRegion: dest },
+        });
+        return {
+          message: `«${trap.name}» — ${target.nickname} с грохотом улетел в ${dest === TELEPORT_HOME_PRIMARY ? "Хутор Душлендора" : "Чахлый Бор"}.`,
+          extra: { teleportedTo: dest },
+        };
+      }
+
+      default:
+        throw new Error(`Неизвестный instantKind: ${trap.instantKind}`);
+    }
   });
 }

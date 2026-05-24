@@ -9,6 +9,7 @@ import { RARITY_COLORS, RARITY_NAMES, CATEGORY_NAMES, ItemRarity, ItemCategory, 
 import { isPassive } from "@/lib/item-effects";
 import { parseActiveBuffs } from "@/lib/active-buffs";
 import { getTrapByItemId } from "@/lib/trap-effects";
+import { getItemEmoji } from "@/lib/item-icons";
 import UseItemButton from "./UseItemButton";
 import ThrowTrapButton from "./TrapCard";
 
@@ -225,28 +226,47 @@ function ItemCard({
     }}>
       <div style={{
         display: "flex",
-        justifyContent: "space-between",
+        gap: "0.75rem",
         alignItems: "flex-start",
-        gap: "0.5rem",
       }}>
-        <h3 style={{
-          fontSize: "1.05rem",
-          color: colors.text,
-          margin: 0,
-          lineHeight: 1.2,
-        }}>
-          {item.name}
-        </h3>
-        <span style={{
-          fontSize: "0.65rem",
-          color: colors.text,
-          opacity: 0.7,
-          letterSpacing: "0.15em",
-          textTransform: "uppercase",
-          whiteSpace: "nowrap",
-        }}>
-          {RARITY_NAMES[item.rarity as ItemRarity]}
+        <span
+          aria-hidden
+          style={{
+            fontSize: "2.2rem",
+            lineHeight: 1,
+            flexShrink: 0,
+            filter: `drop-shadow(0 0 8px ${colors.glow})`,
+          }}
+        >
+          {getItemEmoji(item.iconKey)}
         </span>
+        <div style={{
+          flex: 1,
+          minWidth: 0,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: "0.5rem",
+        }}>
+          <h3 style={{
+            fontSize: "1.05rem",
+            color: colors.text,
+            margin: 0,
+            lineHeight: 1.2,
+          }}>
+            {item.name}
+          </h3>
+          <span style={{
+            fontSize: "0.65rem",
+            color: colors.text,
+            opacity: 0.7,
+            letterSpacing: "0.15em",
+            textTransform: "uppercase",
+            whiteSpace: "nowrap",
+          }}>
+            {RARITY_NAMES[item.rarity as ItemRarity]}
+          </span>
+        </div>
       </div>
 
       <div style={{

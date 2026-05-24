@@ -9,6 +9,8 @@ import {
   serializeActiveBuffs,
   removeBuff,
   hasBuff,
+  findBuff,
+  addBuff,
 } from "@/lib/active-buffs";
 
 export async function POST(req: Request) {
@@ -95,9 +97,12 @@ export async function POST(req: Request) {
   let finalCost = hasBoots ? Math.max(1, moveCheck.cost - 1) : moveCheck.cost;
 
   // Ловушки, влияющие на перемещение:
-  //   trap_slow (Грабли) — +1
-  //   trap_strong_slow (Крыса) — +2
-  //   trap_extra_cost (Жижа) — +1 на любое действие
+  //   trap_slow         (Грабли)               — +1, разовая
+  //   trap_strong_slow  (старый эффект Крысы) — +2, разовая.
+  //                     Новый эффект Крысы — instant (steal_gold), buff не вешается,
+  //                     но старые висящие баффы у текущих игроков уважим.
+  //   trap_extra_cost   (Липкая Жижа)         — +1 на любое действие, разовая
+  //   trap_stink        (Сральный пакет)       — +1 на каждое перемещение, счётчик в payload.remaining
   const buffs = parseActiveBuffs(player.activeBuffs);
   let updatedBuffs = buffs;
   const trapsApplied: string[] = [];
@@ -109,12 +114,33 @@ export async function POST(req: Request) {
   if (hasBuff(buffs, "trap_strong_slow")) {
     finalCost += 2;
     updatedBuffs = removeBuff(updatedBuffs, "trap_strong_slow");
-    trapsApplied.push("Крыса");
+    trapsApplied.push("Крыса (старый эффект)");
   }
   if (hasBuff(buffs, "trap_extra_cost")) {
     finalCost += 1;
     updatedBuffs = removeBuff(updatedBuffs, "trap_extra_cost");
     trapsApplied.push("Липкая Жижа");
+  }
+  // Зловоние: +1 ход, счётчик remaining уменьшается; если стал 0 — снимаем бафф.
+  const stinkBuff = findBuff(updatedBuffs, "trap_stink");
+  if (stinkBuff) {
+    finalCost += 1;
+    const rawRemaining = stinkBuff.payload?.remaining;
+    const remaining =
+      typeof rawRemaining === "number" && rawRemaining > 0 ? rawRemaining : 2;
+    const nextRemaining = remaining - 1;
+    updatedBuffs = removeBuff(updatedBuffs, "trap_stink");
+    if (nextRemaining > 0) {
+      updatedBuffs = addBuff(updatedBuffs, {
+        ...stinkBuff,
+        payload: { ...stinkBuff.payload, remaining: nextRemaining },
+      });
+    }
+    trapsApplied.push(
+      nextRemaining > 0
+        ? `Сральный пакет (осталось ${nextRemaining})`
+        : "Сральный пакет (выветрился)",
+    );
   }
 
   // Бафф «Баскет 24 крыльев» — следующее перемещение бесплатное (после всех штрафов)
@@ -124,7 +150,9 @@ export async function POST(req: Request) {
     updatedBuffs = removeBuff(updatedBuffs, "free_move");
   }
 
-  const buffsChanged = updatedBuffs.length !== buffs.length;
+  // Любое попадание ловушки (включая обновление payload счётчика Зловония) считаем изменением.
+  const buffsChanged =
+    updatedBuffs.length !== buffs.length || trapsApplied.length > 0;
 
   if (player.energy < finalCost) {
     return NextResponse.json(

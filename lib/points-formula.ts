@@ -181,6 +181,10 @@ export function calculatePoints(input: CalcInput): PointsResult {
     raw -= 2;
     breakdown.push({ label: "Тухлая Шаурма (ловушка)", value: -2, type: "penalty" });
   }
+  if (input.activeTraps?.includes("barin_curse")) {
+    raw -= 2;
+    breakdown.push({ label: "Проклятье барина (ловушка)", value: -2, type: "penalty" });
+  }
 
   // === АКТИВКИ КЛАССОВ (стакаются с другими множителями) ===
 
