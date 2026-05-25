@@ -49,6 +49,11 @@ export default function ItemWheelModal({ gameId, onClose }: ItemWheelModalProps)
         setPhase("choose");
       } else {
         setItem(data.item);
+        if (data.bonusItem) {
+          alert(
+            `Шар Всезнания дал бонусный предмет: «${data.bonusItem.name}» — уже в твоём инвентаре.`,
+          );
+        }
         setPhase("result");
       }
     } catch (e) {
@@ -71,6 +76,12 @@ export default function ItemWheelModal({ gameId, onClose }: ItemWheelModalProps)
         return;
       }
       setItem(data.item);
+      if (data.bonusItem) {
+        // Шар Всезнания дал вторую крутку. Покажем баннер.
+        alert(
+          `Шар Всезнания дал бонусный предмет: «${data.bonusItem.name}» — уже в твоём инвентаре.`,
+        );
+      }
       setPhase("result");
     } catch (e) {
       console.error(e);
