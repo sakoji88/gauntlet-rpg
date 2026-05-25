@@ -144,11 +144,11 @@ export function calculatePoints(input: CalcInput): PointsResult {
     breakdown.push(classPenalty);
   }
 
-  // 6.5) ПЕРВОЕ ПРОХОЖДЕНИЕ ИГРЫ В СЕЗОНЕ
+  // 6.5) ПЕРВОПРОХОДЕЦ СЕЗОНА (раз за сезон, тому кто первым вообще завершил игру)
   if (input.firstInSeasonBonus && input.firstInSeasonBonus > 0) {
     raw += input.firstInSeasonBonus;
     breakdown.push({
-      label: "Первым прошёл эту игру в сезоне",
+      label: "Первопроходец Сезона",
       value: input.firstInSeasonBonus,
       type: "bonus",
     });

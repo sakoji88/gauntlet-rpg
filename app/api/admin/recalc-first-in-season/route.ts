@@ -1,31 +1,31 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
-import { normalizeGameTitle } from "@/lib/game-title";
 
-// Одноразовый перерасчёт бонуса «+2 первым прошёл» в текущем сезоне.
+// Одноразовый перерасчёт бонуса «Первопроходец Сезона» (+2) в текущем сезоне.
 //
-// Проблема: раньше сравнение title в finish/route.ts шло строго (с учётом
-// пробелов, кавычек, римских/арабских цифр), из-за чего почти каждый игрок
-// получал +2 при засчёте — типа он "первый". Этот эндпоинт пересчитывает
-// группы по нормализованному title, оставляет +2 только хронологически
-// первому в каждой группе, и снимает по 2 поинта со всех остальных игр.
+// Новая логика: бонус +2 даётся ровно ОДНОМУ игроку за сезон — тому, кто
+// первым вообще завершит любую игру в новом сезоне.
 //
-// Body:
-//   { dryRun?: boolean }  — true (по умолчанию): только показать что будет.
-//                           false: применить изменения.
+// Раньше из-за кривого title-сравнения бонус начислялся почти каждому за
+// каждое прохождение. Этот эндпоинт исправляет накопившуюся переплату:
 //
-// Возвращает список затронутых игр и итоговую дельту по каждому игроку.
+//   1. Находит самую первую COMPLETED-игру сезона (хронологически).
+//      Эта игра «легитимно» получила +2 → не трогаем.
+//   2. У всех остальных COMPLETED-игр сезона: −2 поинта у соответствующего
+//      игрока (бонус им начислять не должны были).
+//
+// Body: { dryRun?: boolean } — true (по умолчанию) показывает что будет,
+// false применяет.
 
 interface Adjustment {
   gameId: string;
   playerId: string;
   playerNickname: string;
   title: string;
-  normalizedTitle: string;
   completedAt: string;
-  reason: string; // "kept_first" | "revoke_dup"
-  delta: number;  // 0 для kept_first, -2 для revoke
+  reason: "kept_first" | "revoke";
+  delta: number;
 }
 
 export async function POST(req: Request) {
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Нет активного сезона" }, { status: 400 });
   }
 
-  // Все завершённые игры этого сезона
+  // Все завершённые игры этого сезона по возрастанию completedAt
   const games = await prisma.game.findMany({
     where: {
       status: "COMPLETED",
@@ -58,85 +58,79 @@ export async function POST(req: Request) {
     orderBy: { completedAt: "asc" },
   });
 
-  // Группируем по нормализованному title
-  const groups = new Map<string, typeof games>();
-  for (const g of games) {
-    const key = normalizeGameTitle(g.title);
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key)!.push(g);
-  }
-
   const adjustments: Adjustment[] = [];
   const playerDeltas = new Map<string, number>();
 
-  for (const [normTitle, group] of groups) {
-    if (group.length <= 1) continue; // одиночные — ничего не меняем
-    // group уже отсортирована по completedAt asc
-    for (let i = 0; i < group.length; i++) {
-      const g = group[i];
-      if (i === 0) {
-        adjustments.push({
-          gameId: g.id,
-          playerId: g.player.id,
-          playerNickname: g.player.nickname,
-          title: g.title,
-          normalizedTitle: normTitle,
-          completedAt: g.completedAt?.toISOString() ?? "",
-          reason: "kept_first",
-          delta: 0,
-        });
-      } else {
-        adjustments.push({
-          gameId: g.id,
-          playerId: g.player.id,
-          playerNickname: g.player.nickname,
-          title: g.title,
-          normalizedTitle: normTitle,
-          completedAt: g.completedAt?.toISOString() ?? "",
-          reason: "revoke_dup",
-          delta: -2,
-        });
-        playerDeltas.set(
-          g.player.id,
-          (playerDeltas.get(g.player.id) ?? 0) - 2,
-        );
-      }
+  for (let i = 0; i < games.length; i++) {
+    const g = games[i];
+    if (i === 0) {
+      // Самая первая — оставляем как есть.
+      adjustments.push({
+        gameId: g.id,
+        playerId: g.player.id,
+        playerNickname: g.player.nickname,
+        title: g.title,
+        completedAt: g.completedAt?.toISOString() ?? "",
+        reason: "kept_first",
+        delta: 0,
+      });
+    } else {
+      adjustments.push({
+        gameId: g.id,
+        playerId: g.player.id,
+        playerNickname: g.player.nickname,
+        title: g.title,
+        completedAt: g.completedAt?.toISOString() ?? "",
+        reason: "revoke",
+        delta: -2,
+      });
+      playerDeltas.set(
+        g.player.id,
+        (playerDeltas.get(g.player.id) ?? 0) - 2,
+      );
     }
   }
 
-  if (dryRun) {
-    return NextResponse.json({
-      dryRun: true,
-      seasonStartedAt: season.startedAt,
-      totalGames: games.length,
-      groupsAffected: [...groups.values()].filter((g) => g.length > 1).length,
-      adjustments,
-      playerDeltas: [...playerDeltas.entries()].map(([id, delta]) => ({
-        playerId: id,
-        delta,
-      })),
-    });
-  }
-
-  // Применяем
-  await prisma.$transaction(
-    [...playerDeltas.entries()].map(([playerId, delta]) =>
-      prisma.player.update({
-        where: { id: playerId },
-        data: { points: { increment: delta } },
-      }),
-    ),
-  );
-
-  return NextResponse.json({
-    dryRun: false,
+  const summary = {
     seasonStartedAt: season.startedAt,
     totalGames: games.length,
-    adjustments,
+    firstGame: games[0]
+      ? {
+          gameId: games[0].id,
+          playerNickname: games[0].player.nickname,
+          title: games[0].title,
+          completedAt: games[0].completedAt,
+        }
+      : null,
+    revokedFromGames: Math.max(0, games.length - 1),
     playerDeltas: [...playerDeltas.entries()].map(([id, delta]) => ({
       playerId: id,
       delta,
+      nickname:
+        adjustments.find((a) => a.playerId === id)?.playerNickname ?? id,
     })),
+    adjustments,
+  };
+
+  if (dryRun) {
+    return NextResponse.json({ dryRun: true, ...summary });
+  }
+
+  // Применяем — одна транзакция
+  if (playerDeltas.size > 0) {
+    await prisma.$transaction(
+      [...playerDeltas.entries()].map(([playerId, delta]) =>
+        prisma.player.update({
+          where: { id: playerId },
+          data: { points: { increment: delta } },
+        }),
+      ),
+    );
+  }
+
+  return NextResponse.json({
+    dryRun: false,
     appliedTo: playerDeltas.size,
+    ...summary,
   });
 }

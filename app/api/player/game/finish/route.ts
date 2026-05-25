@@ -14,7 +14,6 @@ import {
 } from "@/lib/active-buffs";
 import { hasPassiveEffect } from "@/lib/item-effects";
 import { TRAP_BUFF_KEYS } from "@/lib/trap-effects";
-import { normalizeGameTitle } from "@/lib/game-title";
 import type { Quest, Player } from "@prisma/client";
 
 const PRISON_REGION_ID = "prison";
@@ -187,26 +186,20 @@ export async function POST(req: Request) {
       if (hasBuff(buffs, key)) activeBuffKeys.push(key);
     }
 
-    // +2 если это ПЕРВОЕ прохождение этой игры в текущем сезоне (кем-либо).
-    // Сравниваем по НОРМАЛИЗОВАННОМУ title (trim, lowercase, схлопывание
-    // пробелов и пунктуации) — игроки вводят названия вручную, и раньше
-    // даже минимальные различия типа лишнего пробела или "I" vs "1" давали
-    // всем подряд бонус «первым прошёл».
+    // +2 «Первопроходец Сезона» — даётся ОДНОМУ игроку за сезон, тому, кто
+    // первым вообще завершит любую игру в новом сезоне. Все последующие
+    // прохождения (в том числе у того же игрока) — без этого бонуса.
     let firstInSeasonBonus = 0;
     if (season) {
-      const target = normalizeGameTitle(game.title);
-      const completedThisSeason = await prisma.game.findMany({
+      const anyCompletedThisSeason = await prisma.game.findFirst({
         where: {
           status: "COMPLETED",
           completedAt: { gte: season.startedAt },
           id: { not: game.id },
         },
-        select: { title: true },
+        select: { id: true },
       });
-      const alreadyDone = completedThisSeason.some(
-        (g) => normalizeGameTitle(g.title) === target,
-      );
-      if (!alreadyDone) firstInSeasonBonus = 2;
+      if (!anyCompletedThisSeason) firstInSeasonBonus = 2;
     }
 
     // Плоский бонус предметов: догоняющему (catch_up) + удачник-неудачник (lucky_loser).
