@@ -330,8 +330,9 @@ export default function UtilsTab({
                       <button
                         onClick={() => run("force_complete_quest", { questId: q.id })}
                         style={miniBtn("var(--color-gold)")}
+                        title="Засчитать квест и начислить все награды (поинты, EXP, Злато, предмет)"
                       >
-                        Завершить
+                        Засчитать
                       </button>
                       <button
                         onClick={() => run("force_decline_quest", { questId: q.id })}

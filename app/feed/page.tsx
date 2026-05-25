@@ -373,7 +373,7 @@ export default async function FeedPage() {
                       }}>
                         {g.hours !== null && <span>⏱ {g.hours} ч</span>}
                         {g.rating !== null && (
-                          <span style={{ color: "var(--color-gold-dim)" }}>★ {g.rating}/100</span>
+                          <span style={{ color: "var(--color-gold-dim)" }}>★ {g.rating}/10</span>
                         )}
                       </div>
                     )}

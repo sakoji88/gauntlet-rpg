@@ -185,17 +185,83 @@ export async function POST(req: Request) {
       if (!quest || quest.playerId !== playerId) {
         return NextResponse.json({ error: "Квест не найден" }, { status: 404 });
       }
-      await prisma.quest.update({
-        where: { id: questId },
-        data: {
-          status: "COMPLETED",
-          progress: quest.targetCount,
-          completedAt: new Date(),
-        },
-      });
+      if (quest.status === "COMPLETED") {
+        return NextResponse.json({ error: "Квест уже завершён" }, { status: 400 });
+      }
+
+      // Разбираем награды и считаем классовые/харизматические бонусы — как для
+      // обычного засчёта (lore-complete / applyQuestProgress).
+      let baseRewards = { points: 0, exp: 0, itemId: undefined as string | undefined };
+      try {
+        const parsed = JSON.parse(quest.rewards);
+        if (typeof parsed?.points === "number") baseRewards.points = parsed.points;
+        if (typeof parsed?.exp === "number") baseRewards.exp = parsed.exp;
+        if (typeof parsed?.itemId === "string") baseRewards.itemId = parsed.itemId;
+      } catch {
+        // ignore
+      }
+      const bardBonus = player.class === "bard" ? 2 : 0;
+      const charismaBonus = Math.floor(player.charisma / 6);
+      const totalPoints = baseRewards.points + bardBonus + charismaBonus;
+
+      // Выдаём предмет, если он есть в наградах. Сосуд Перова — уникальный:
+      // если уже есть — конвертируется в +10 поинтов вместо дубля.
+      let itemReward: { id: string; name: string } | null = null;
+      let duplicateBonus = 0;
+      if (baseRewards.itemId) {
+        if (baseRewards.itemId === "perov_vessel") {
+          const already = await prisma.inventoryItem.findFirst({
+            where: { playerId, itemId: "perov_vessel" },
+          });
+          if (already) {
+            duplicateBonus = 10;
+          } else {
+            const itemDef = await prisma.item.findUnique({ where: { id: baseRewards.itemId } });
+            if (itemDef) {
+              await prisma.inventoryItem.create({
+                data: { playerId, itemId: itemDef.id, charges: itemDef.charges },
+              });
+              itemReward = { id: itemDef.id, name: itemDef.name };
+            }
+          }
+        } else {
+          const itemDef = await prisma.item.findUnique({ where: { id: baseRewards.itemId } });
+          if (itemDef) {
+            await prisma.inventoryItem.create({
+              data: { playerId, itemId: itemDef.id, charges: itemDef.charges },
+            });
+            itemReward = { id: itemDef.id, name: itemDef.name };
+          }
+        }
+      }
+      const finalPoints = totalPoints + duplicateBonus;
+
+      await prisma.$transaction([
+        prisma.quest.update({
+          where: { id: questId },
+          data: {
+            status: "COMPLETED",
+            progress: quest.targetCount,
+            completedAt: new Date(),
+          },
+        }),
+        prisma.player.update({
+          where: { id: playerId },
+          data: {
+            points: { increment: finalPoints },
+            exp: { increment: baseRewards.exp },
+            gold: { increment: 5 }, // Злато за квест — как везде
+          },
+        }),
+      ]);
+      await recomputeAndPersistLevel(playerId);
+
+      const parts = [`+${finalPoints} поинтов`, `+${baseRewards.exp} EXP`, "+5 Злата"];
+      if (itemReward) parts.push(`предмет «${itemReward.name}»`);
+      if (duplicateBonus > 0) parts.push(`+${duplicateBonus} компенсация за дубль Сосуда`);
       return NextResponse.json({
         success: true,
-        message: `Квест "${quest.title}" принудительно завершён (без наград)`,
+        message: `Квест "${quest.title}" засчитан: ${parts.join(", ")}`,
       });
     }
 
