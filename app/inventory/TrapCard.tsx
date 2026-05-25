@@ -6,6 +6,7 @@ import ThrowTrapModal, { type TargetPlayer } from "./ThrowTrapModal";
 
 export default function ThrowTrapButton({
   inventoryItemId,
+  itemId,
   itemName,
   itemDescription,
   targets,
@@ -13,6 +14,7 @@ export default function ThrowTrapButton({
   color,
 }: {
   inventoryItemId: string;
+  itemId: string;
   itemName: string;
   itemDescription: string;
   targets: TargetPlayer[];
@@ -50,6 +52,7 @@ export default function ThrowTrapButton({
       {open && (
         <ThrowTrapModal
           inventoryItemId={inventoryItemId}
+          itemId={itemId}
           itemName={itemName}
           itemDescription={itemDescription}
           targets={targets}

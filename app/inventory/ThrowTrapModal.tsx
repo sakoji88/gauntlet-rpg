@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Target, X, Loader2, Skull } from "lucide-react";
+import { getTrapByItemId } from "@/lib/trap-effects";
 
 export interface TargetPlayer {
   id: string;
@@ -13,6 +14,7 @@ export interface TargetPlayer {
 
 interface ThrowTrapModalProps {
   inventoryItemId: string;
+  itemId: string;
   itemName: string;
   itemDescription: string;
   targets: TargetPlayer[];
@@ -22,6 +24,7 @@ interface ThrowTrapModalProps {
 
 export default function ThrowTrapModal({
   inventoryItemId,
+  itemId,
   itemName,
   itemDescription,
   targets,
@@ -30,10 +33,18 @@ export default function ThrowTrapModal({
 }: ThrowTrapModalProps) {
   const router = useRouter();
   const [pickedId, setPickedId] = useState<string | null>(null);
+  const [forcedGameTitle, setForcedGameTitle] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const trap = getTrapByItemId(itemId);
+  const requiresGameTitle = trap?.requiresGameTitle === true;
 
   async function confirm() {
     if (!pickedId) return;
+    if (requiresGameTitle && forcedGameTitle.trim().length < 2) {
+      alert("Впиши название игры для жертвы (минимум 2 символа)");
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch("/api/player/trap/throw", {
@@ -42,6 +53,7 @@ export default function ThrowTrapModal({
         body: JSON.stringify({
           inventoryItemId,
           targetPlayerId: pickedId,
+          ...(requiresGameTitle ? { forcedGameTitle: forcedGameTitle.trim() } : {}),
         }),
       });
       const data = await res.json();
@@ -148,6 +160,50 @@ export default function ThrowTrapModal({
             ? "🜂 Урка: бесплатно (Ловкие Пальцы)"
             : "⚡ Стоимость: 1 ход"}
         </div>
+
+        {requiresGameTitle && (
+          <div style={{ marginBottom: "1rem" }}>
+            <div
+              style={{
+                fontSize: "0.75rem",
+                color: "var(--color-blood-bright)",
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                marginBottom: "0.4rem",
+              }}
+            >
+              Какую игру задать жертве?
+            </div>
+            <input
+              type="text"
+              value={forcedGameTitle}
+              onChange={(e) => setForcedGameTitle(e.target.value)}
+              placeholder="например: Pathologic 2"
+              style={{
+                width: "100%",
+                padding: "0.55rem 0.75rem",
+                background: "var(--color-bg)",
+                border: "1px solid var(--color-blood-bright)",
+                color: "var(--color-text-bright)",
+                fontSize: "0.9rem",
+                fontFamily: "inherit",
+                outline: "none",
+              }}
+            />
+            <div
+              style={{
+                marginTop: "0.4rem",
+                fontSize: "0.72rem",
+                color: "var(--color-text-dim)",
+                fontStyle: "italic",
+                lineHeight: 1.4,
+              }}
+            >
+              Игра встанет жертве в актив бесплатно. Она обязана её пройти
+              или дропнуть в Тюрьму (−2 поинта, как обычный дроп).
+            </div>
+          </div>
+        )}
 
         <div
           style={{

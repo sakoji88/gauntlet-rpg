@@ -21,12 +21,15 @@ export interface TrapDef {
   magnitude: number;
   // Для instant-режима:
   instantKind?:
-    | "steal_gold"      // Крыса: украсть N Злата → бросающему
-    | "burn_charge"     // Огнемёт: сжечь 1 заряд случайному предмету жертвы
-    | "drain_gold"      // Дрисево: списать N Злата у жертвы (без передачи)
-    | "teleport_home"   // Пердак: швырнуть жертву в Хутор (или Чахлый Бор если уже там)
-    | "lose_random_item"; // Поддельный Квест: удалить случайный consumable у жертвы
+    | "steal_gold"        // Крыса: украсть N Злата → бросающему
+    | "burn_charge"       // Огнемёт: сжечь 1 заряд случайному предмету жертвы
+    | "drain_gold"        // Дрисево: списать N Злата у жертвы (без передачи)
+    | "teleport_home"     // Пердак: швырнуть жертву в Хутор (или Чахлый Бор если уже там)
+    | "lose_random_item"  // Поддельный Квест: удалить случайный consumable у жертвы
+    | "force_game";       // Скальп Говяды: задать жертве конкретную игру (бесплатно)
   description: string;       // краткое описание для UI/сообщений
+  // true — перед броском игрок должен вписать название игры (Скальп Говяды).
+  requiresGameTitle?: boolean;
 }
 
 export const TRAPS: TrapDef[] = [
@@ -154,6 +157,18 @@ export const TRAPS: TrapDef[] = [
     instantKind: "teleport_home",
     magnitude: 0,
     description: "Жертву сдувает в Хутор Душлендора (если уже там — в Чахлый Бор)",
+  },
+  {
+    // Скальп Говяды — особая ловушка: бросающий задаёт название игры,
+    // жертве она ставится в актив бесплатно. Жертва обязана пройти или дропнуть.
+    itemEffectKey: "trap_forced_game",
+    itemId: "govyada_scalp",
+    name: "Скальп Говяды",
+    mode: "instant",
+    instantKind: "force_game",
+    magnitude: 0,
+    description: "Бросающий задаёт жертве игру вручную — она встаёт в актив без затрат хода",
+    requiresGameTitle: true,
   },
 ];
 

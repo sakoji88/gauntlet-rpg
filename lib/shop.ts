@@ -59,7 +59,7 @@ export const SHOP: ShopEntry[] = [
   { itemId: "fake_beard_chakhlik",   currency: "gold",   price: 60, sellPrice: 24, stockLimit: 3 },
   { itemId: "chakhlik_hat",          currency: "gold",   price: 65, sellPrice: 26, stockLimit: 3 },
   { itemId: "not_bad_days_hoodie",   currency: "gold",   price: 70, sellPrice: 28, stockLimit: 4 },
-  { itemId: "govyada_scalp",         currency: "points", price: 18, sellPrice: 0,  stockLimit: 2 },
+  { itemId: "govyada_scalp",         currency: "gold",   price: 150, sellPrice: 50, stockLimit: 2 },
 ];
 
 // === ХЕЛПЕРЫ ===

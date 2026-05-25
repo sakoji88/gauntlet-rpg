@@ -36,9 +36,10 @@ export async function POST(req: Request) {
   } catch {
     return NextResponse.json({ error: "Кривое тело" }, { status: 400 });
   }
-  const { inventoryItemId, targetPlayerId } = body as {
+  const { inventoryItemId, targetPlayerId, forcedGameTitle } = body as {
     inventoryItemId?: string;
     targetPlayerId?: string;
+    forcedGameTitle?: string; // только для Скальпа Говяды
   };
   if (!inventoryItemId || !targetPlayerId) {
     return NextResponse.json(
@@ -56,7 +57,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "В себя нельзя" }, { status: 400 });
   }
 
-  const target = await prisma.player.findUnique({ where: { id: targetPlayerId } });
+  let target = await prisma.player.findUnique({ where: { id: targetPlayerId } });
   if (!target) {
     return NextResponse.json({ error: "Цель не найдена" }, { status: 404 });
   }
@@ -84,9 +85,37 @@ export async function POST(req: Request) {
     );
   }
 
-  const targetBuffs = parseActiveBuffs(target.activeBuffs);
+  // Скальп Говяды и другие ловушки с requiresGameTitle — нужен title от бросающего.
+  const cleanForcedTitle = (forcedGameTitle ?? "").trim();
+  if (trap.requiresGameTitle && cleanForcedTitle.length < 2) {
+    return NextResponse.json(
+      { error: "Для этой ловушки нужно вписать название игры (минимум 2 символа)" },
+      { status: 400 },
+    );
+  }
 
-  // Для buff-ловушек: проверка дубля
+  let targetBuffs = parseActiveBuffs(target.activeBuffs);
+
+  // === ОТРАЖЕНИЕ (Чупа чупс Душика) ===
+  // Если у цели висит trap_reflect — ловушка летит обратно в нападавшего.
+  // Бафф сжигается у изначальной цели. Дальше код выполняется так, будто
+  // цель = бросающий (target переопределяется). Защитные баффы у нового
+  // «получателя» (Балкон, ещё одна Чупа чупс) НЕ перепроверяются — это
+  // разовая «карма».
+  let reflected = false;
+  let originalTargetNickname = target.nickname;
+  if (hasBuff(targetBuffs, "trap_reflect")) {
+    reflected = true;
+    const cleanedReflectBuffs = removeBuff(targetBuffs, "trap_reflect");
+    await prisma.player.update({
+      where: { id: target.id },
+      data: { activeBuffs: serializeActiveBuffs(cleanedReflectBuffs) },
+    });
+    target = player;
+    targetBuffs = parseActiveBuffs(player.activeBuffs);
+  }
+
+  // Для buff-ловушек: проверка дубля (на ЭФФЕКТИВНОЙ цели — с учётом отражения)
   if (trap.mode === "buff" && trap.buffKey && hasBuff(targetBuffs, trap.buffKey)) {
     return NextResponse.json(
       { error: "У цели уже висит такая ловушка" },
@@ -136,6 +165,18 @@ export async function POST(req: Request) {
     );
   }
 
+  // Скальп Говяды: цель не должна иметь активной игры (иначе её нельзя
+  // принудительно поставить). Проверка делается ПОСЛЕ возможного отражения —
+  // target к этому моменту уже указывает на реальную цель.
+  if (trap.instantKind === "force_game" && target.activeGameId) {
+    return NextResponse.json(
+      {
+        error: `У ${target.nickname} уже есть активная игра — Скальп Говяды не сработает. Дождись, пока она освободится.`,
+      },
+      { status: 400 },
+    );
+  }
+
   // ===== Развилка по режиму =====
   if (trap.mode === "buff") {
     const message = await applyBuffTrap({
@@ -151,9 +192,12 @@ export async function POST(req: Request) {
     });
     return NextResponse.json({
       success: true,
-      message,
+      message: reflected
+        ? `🔄 Отражение! ${originalTargetNickname} отбил ловушку обратно. ${message}`
+        : message,
       cost: energyCost,
       free: energyCost === 0,
+      reflected,
     });
   }
 
@@ -162,15 +206,19 @@ export async function POST(req: Request) {
     trap,
     target,
     thrower: player,
+    forcedGameTitle: cleanForcedTitle,
     invItemId: invItem.id,
     invItemCharges: invItem.charges,
     energyCost,
   });
   return NextResponse.json({
     success: true,
-    message: result.message,
+    message: reflected
+      ? `🔄 Отражение! ${originalTargetNickname} отбил ловушку — ${result.message}`
+      : result.message,
     cost: energyCost,
     free: energyCost === 0,
+    reflected,
     ...result.extra,
   });
 }
@@ -237,13 +285,14 @@ async function applyBuffTrap(args: {
 // ===== INSTANT-ЛОВУШКИ =====
 async function applyInstantTrap(args: {
   trap: TrapDef;
-  target: { id: string; nickname: string; gold: number; currentRegion: string | null };
+  target: { id: string; nickname: string; gold: number; currentRegion: string | null; activeGameId: string | null };
   thrower: { id: string; nickname: string; class: string | null };
+  forcedGameTitle: string;
   invItemId: string;
   invItemCharges: number;
   energyCost: number;
 }): Promise<{ message: string; extra?: Record<string, unknown> }> {
-  const { trap, target, thrower, invItemId, invItemCharges, energyCost } = args;
+  const { trap, target, thrower, forcedGameTitle, invItemId, invItemCharges, energyCost } = args;
 
   // Общие операции (декремент предмета, списание хода) — выполним внутри транзакции.
   return await prisma.$transaction(async (tx) => {
@@ -364,6 +413,39 @@ async function applyInstantTrap(args: {
         return {
           message: `«${trap.name}» — ${target.nickname} с грохотом улетел в ${dest === TELEPORT_HOME_PRIMARY ? "Хутор Душлендора" : "Чахлый Бор"}.`,
           extra: { teleportedTo: dest },
+        };
+      }
+
+      case "force_game": {
+        // Скальп Говяды: бросающий задаёт жертве конкретную игру.
+        // Проверка target.activeGameId сделана в main handler.
+        if (!forcedGameTitle) {
+          throw new Error("Не указано название игры для Скальпа");
+        }
+        // Создаём Game напрямую: бесплатно, в текущем регионе жертвы (или khutor если нет).
+        const regionId = target.currentRegion ?? "khutor";
+        const created = await tx.game.create({
+          data: {
+            playerId: target.id,
+            title: forcedGameTitle,
+            link: null,
+            region: regionId,
+            status: "ACTIVE",
+            conditionType: "basic",
+            // в описание — пометка кто прислал. Игрок увидит в активной панели.
+            description: `[Скальп Говяды от ${thrower.nickname}]`,
+            // Слепок условий не пишем — это «голая» игра, основное условие
+            // будет считаться обычно как basic.
+            conditionsSnapshot: null,
+          },
+        });
+        await tx.player.update({
+          where: { id: target.id },
+          data: { activeGameId: created.id },
+        });
+        return {
+          message: `«${trap.name}» — ${target.nickname} обязан пройти «${forcedGameTitle}» (или дропнуть в Тюрьму).`,
+          extra: { forcedGameId: created.id, forcedTitle: forcedGameTitle },
         };
       }
 

@@ -284,6 +284,7 @@ function ItemCard({
           getTrapByItemId(item.id) ? (
             <ThrowTrapButton
               inventoryItemId={invItem.id}
+              itemId={item.id}
               itemName={item.name}
               itemDescription={item.description}
               targets={targets}

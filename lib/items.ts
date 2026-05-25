@@ -547,10 +547,10 @@ export const ITEMS: ItemDef[] = [
   },
   {
     id: "dushik_chupachups",
-    name: "Чупа чупс душика",
-    description: "Облизанный, но сладкий. +2 хода.",
+    name: "Чупа чупс Душика",
+    description: "Сладкое Отражение. Следующая брошенная в тебя ловушка отскакивает обратно в нападавшего — он сам её и хлебнёт. Не блокирует, а возвращает.",
     category: "CONSUMABLE", rarity: "RARE",
-    iconKey: "lollipop", effectKey: "add_energy_2",
+    iconKey: "lollipop", effectKey: "trap_reflect",
     charges: 1, rollWeight: 0,
   },
   {
@@ -612,10 +612,10 @@ export const ITEMS: ItemDef[] = [
   {
     id: "govyada_scalp",
     name: "Скальп Говяды",
-    description: "Трофей легендарной охоты. +5 поинтов следующей игре.",
-    category: "CONSUMABLE", rarity: "LEGENDARY",
-    iconKey: "scalp", effectKey: "points_next_5",
-    charges: 1, rollWeight: 0,
+    description: "Зловещий трофей. Бросаешь в жертву и САМ выбираешь название игры — жертве она ставится в актив бесплатно, и она ОБЯЗАНА её пройти или дропнуть в Тюрьму.",
+    category: "TRAP", rarity: "LEGENDARY",
+    iconKey: "scalp", effectKey: "trap_forced_game",
+    charges: 1, rollWeight: 0, isTrap: true,
   },
 ];
 
