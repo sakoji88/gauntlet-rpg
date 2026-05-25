@@ -28,13 +28,13 @@ interface BreakdownEntry {
   type: "base" | "bonus" | "penalty" | "multiplier";
 }
 
-export default function ActiveGamePanel({ game, activeHype, playerClass }: ActiveGameProps) {
+export default function ActiveGamePanel({ game, activeHype }: ActiveGameProps) {
   const router = useRouter();
-  const isSufferer = playerClass === "sufferer";
   const [confirming, setConfirming] = useState<"complete" | "drop" | null>(null);
   const [hours, setHours] = useState<string>("");
   const [rating, setRating] = useState<string>("");
-  // Доп. поле Metacritic — только для Страдальца, по нему считается его пассивка.
+  // Metacritic — отдельная объективная шкала 0–100. Нужна для RATING-квестов NPC
+  // и пассивки Страдальца. Личная rating 0–10 — для лора и отображения.
   const [metacriticRating, setMetacriticRating] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [isMaxDifficulty, setIsMaxDifficulty] = useState(false);
@@ -59,8 +59,7 @@ export default function ActiveGamePanel({ game, activeHype, playerClass }: Activ
           action,
           hours: hours ? parseFloat(hours) : null,
           rating: rating ? parseInt(rating, 10) : null,
-          metacriticRating:
-            isSufferer && metacriticRating ? parseInt(metacriticRating, 10) : null,
+          metacriticRating: metacriticRating ? parseInt(metacriticRating, 10) : null,
           description: description.trim() || null,
           isMaxDifficulty,
           bardHonored: activeHype ? bardHonored : undefined,
@@ -254,28 +253,31 @@ export default function ActiveGamePanel({ game, activeHype, playerClass }: Activ
                 />
               </label>
 
-              {/* Доп. поле только для Страдальца — Metacritic 0–100 для пассивки */}
-              {isSufferer && (
-                <label style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
-                  <span style={labelStyle}>Оценка Metacritic (0–100) — для пассивки Страдальца</span>
-                  <input
-                    type="number" min="0" max="100"
-                    value={metacriticRating}
-                    onChange={(e) => setMetacriticRating(e.target.value)}
-                    placeholder="например: 78"
-                    style={inputStyle}
-                  />
-                  <span
-                    style={{
-                      fontSize: "0.7rem",
-                      color: "var(--color-text-dim)",
-                      fontStyle: "italic",
-                    }}
-                  >
-                    «Сладость Страдания»: &lt;60 → +3, &lt;40 → +6. «Презрение к Успеху»: &gt;85 → −2.
-                  </span>
-                </label>
-              )}
+              {/* Оценка Metacritic — для квестов RATING и пассивки Страдальца.
+                  Поле нужно ВСЕМ, не только Страдальцу: NPC выдают квесты вида
+                  «пройди игру с Metacritic 80+» — без этого поля они не засчитаются. */}
+              <label style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+                <span style={labelStyle}>Оценка Metacritic (0–100, по объективной шкале)</span>
+                <input
+                  type="number" min="0" max="100"
+                  value={metacriticRating}
+                  onChange={(e) => setMetacriticRating(e.target.value)}
+                  placeholder="например: 78"
+                  style={inputStyle}
+                />
+                <span
+                  style={{
+                    fontSize: "0.7rem",
+                    color: "var(--color-text-dim)",
+                    fontStyle: "italic",
+                  }}
+                >
+                  Нужно для квестов «рейтинг N+» и для пассивки Страдальца
+                  («Сладость Страдания» / «Презрение к Успеху»). Можно оставить
+                  пустым — тогда такие квесты не зачтутся, а пассивка
+                  Страдальца не сработает.
+                </span>
+              </label>
 
               {/* Чекбокс — макс сложность */}
               <CheckBox

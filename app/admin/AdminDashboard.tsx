@@ -10,6 +10,7 @@ import {
 import { CLASSES } from "@/lib/classes";
 import { REGIONS } from "@/lib/regions";
 import UtilsTab from "./UtilsTab";
+import RecalcFirstInSeason from "./RecalcFirstInSeason";
 
 type Tab = "dashboard" | "players" | "whitelist" | "games" | "seasons" | "utils";
 
@@ -55,6 +56,7 @@ export default function AdminDashboard(props: any) {
           }}>
             📜 Контент
           </Link>
+          <RecalcFirstInSeason />
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>

@@ -14,6 +14,7 @@ import {
 } from "@/lib/active-buffs";
 import { hasPassiveEffect } from "@/lib/item-effects";
 import { TRAP_BUFF_KEYS } from "@/lib/trap-effects";
+import { normalizeGameTitle } from "@/lib/game-title";
 import type { Quest, Player } from "@prisma/client";
 
 const PRISON_REGION_ID = "prison";
@@ -187,17 +188,24 @@ export async function POST(req: Request) {
     }
 
     // +2 если это ПЕРВОЕ прохождение этой игры в текущем сезоне (кем-либо).
-    // Сравниваем по title без регистра.
+    // Сравниваем по НОРМАЛИЗОВАННОМУ title (trim, lowercase, схлопывание
+    // пробелов и пунктуации) — игроки вводят названия вручную, и раньше
+    // даже минимальные различия типа лишнего пробела или "I" vs "1" давали
+    // всем подряд бонус «первым прошёл».
     let firstInSeasonBonus = 0;
     if (season) {
-      const alreadyDone = await prisma.game.findFirst({
+      const target = normalizeGameTitle(game.title);
+      const completedThisSeason = await prisma.game.findMany({
         where: {
           status: "COMPLETED",
           completedAt: { gte: season.startedAt },
-          title: { equals: game.title, mode: "insensitive" },
           id: { not: game.id },
         },
+        select: { title: true },
       });
+      const alreadyDone = completedThisSeason.some(
+        (g) => normalizeGameTitle(g.title) === target,
+      );
       if (!alreadyDone) firstInSeasonBonus = 2;
     }
 
@@ -360,10 +368,14 @@ export async function POST(req: Request) {
     });
 
     // Прогресс по активным квестам игрока. Прокидываем параметры засчитываемой игры.
+    // ВАЖНО: для RATING-квестов используется именно metacriticRating (объективная шкала
+    // 0–100), а не личная оценка 0–10.
     const questUpdates = await applyQuestProgress(player.id, {
       region: game.region,
       hours: typeof hours === "number" ? hours : null,
       rating: typeof rating === "number" ? rating : null,
+      metacriticRating:
+        typeof metacriticRating === "number" ? metacriticRating : null,
       isMaxDifficulty: Boolean(isMaxDifficulty),
     });
 
@@ -475,7 +487,8 @@ export async function POST(req: Request) {
 interface GameContext {
   region: string;
   hours: number | null;
-  rating: number | null;
+  rating: number | null;       // Личная оценка игрока 0–10
+  metacriticRating: number | null; // Metacritic 0–100, нужно для RATING-квестов
   isMaxDifficulty: boolean;
 }
 
@@ -633,11 +646,15 @@ function gameMatchesQuest(quest: Quest, ctx: GameContext): boolean {
       if (params.maxHours !== undefined && ctx.hours > params.maxHours) return false;
       return true;
 
-    case "RATING":
-      if (ctx.rating === null) return false;
-      if (params.minRating !== undefined && ctx.rating < params.minRating) return false;
-      if (params.maxRating !== undefined && ctx.rating > params.maxRating) return false;
+    case "RATING": {
+      // RATING-квесты NPC сформулированы по шкале Metacritic (0–100), а игрок
+      // вводит личную оценку 0–10. Используем metacriticRating, если есть.
+      const mc = ctx.metacriticRating;
+      if (mc === null) return false;
+      if (params.minRating !== undefined && mc < params.minRating) return false;
+      if (params.maxRating !== undefined && mc > params.maxRating) return false;
       return true;
+    }
 
     case "CHALLENGE":
       if (params.region && ctx.region !== params.region) return false;
