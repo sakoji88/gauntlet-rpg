@@ -12,6 +12,7 @@ import { REGIONS } from "@/lib/regions";
 import UtilsTab from "./UtilsTab";
 import RecalcFirstInSeason from "./RecalcFirstInSeason";
 import ReseedItemsButton from "./ReseedItemsButton";
+import ApplySchemaButton from "./ApplySchemaButton";
 
 type Tab = "dashboard" | "players" | "whitelist" | "games" | "seasons" | "utils";
 
@@ -59,6 +60,7 @@ export default function AdminDashboard(props: any) {
           </Link>
           <RecalcFirstInSeason />
           <ReseedItemsButton />
+          <ApplySchemaButton />
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
