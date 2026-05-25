@@ -21,7 +21,8 @@ type Action =
   | "force_recompute_level"
   | "add_exp"
   | "force_complete_quest"
-  | "force_decline_quest";
+  | "force_decline_quest"
+  | "rollback_quest";
 
 export async function POST(req: Request) {
   const auth = await requireAdmin();
@@ -281,6 +282,43 @@ export async function POST(req: Request) {
       return NextResponse.json({
         success: true,
         message: `Квест "${quest.title}" принудительно отклонён`,
+      });
+    }
+
+    case "rollback_quest": {
+      // Откат квеста в активное состояние (для пересчёта/повторного засчёта).
+      // НЕ снимает поинты обратно — для безопасности. Если квест уже был
+      // засчитан с наградами, и админ откатит + засчитает заново, награды
+      // дадутся ВТОРОЙ раз. Это редко нужно, обычно откат используется
+      // для квестов, которые висят COMPLETED БЕЗ наград (баг старого кода).
+      const { questId } = body as { questId?: string };
+      if (!questId) {
+        return NextResponse.json({ error: "questId обязателен" }, { status: 400 });
+      }
+      const quest = await prisma.quest.findUnique({ where: { id: questId } });
+      if (!quest || quest.playerId !== playerId) {
+        return NextResponse.json({ error: "Квест не найден" }, { status: 404 });
+      }
+      if (quest.status === "ACTIVE" || quest.status === "OFFERED") {
+        return NextResponse.json(
+          { error: "Квест и так не в финальном статусе — нечего откатывать" },
+          { status: 400 },
+        );
+      }
+      // Если квест был принят (acceptedAt установлен) — возвращаем в ACTIVE,
+      // иначе — в OFFERED (так и не успел стать активным).
+      const newStatus = quest.acceptedAt ? "ACTIVE" : "OFFERED";
+      await prisma.quest.update({
+        where: { id: questId },
+        data: {
+          status: newStatus,
+          completedAt: null,
+          progress: 0,
+        },
+      });
+      return NextResponse.json({
+        success: true,
+        message: `Квест "${quest.title}" откачен → ${newStatus}. Теперь можно засчитать заново.`,
       });
     }
 

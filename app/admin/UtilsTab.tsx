@@ -342,6 +342,28 @@ export default function UtilsTab({
                       </button>
                     </>
                   )}
+                  {(q.status === "COMPLETED" || q.status === "DECLINED" || q.status === "EXPIRED") && (
+                    <button
+                      onClick={() => {
+                        if (
+                          q.status === "COMPLETED" &&
+                          !confirm(
+                            "Откатить ЗАВЕРШЁННЫЙ квест в ACTIVE?\n\n" +
+                            "Поинты НЕ снимаются автоматически. Если квест уже\n" +
+                            "был засчитан с наградами и ты потом снова жмёшь\n" +
+                            "«Засчитать» — награды дадутся ВТОРОЙ раз.\n\n" +
+                            "Используй только если квест висит COMPLETED без\n" +
+                            "начисленных наград (баг старого кода).",
+                          )
+                        ) return;
+                        run("rollback_quest", { questId: q.id });
+                      }}
+                      style={miniBtn("var(--color-text-dim)")}
+                      title="Сбросить статус квеста обратно в ACTIVE/OFFERED, чтобы можно было засчитать заново"
+                    >
+                      Откатить
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
