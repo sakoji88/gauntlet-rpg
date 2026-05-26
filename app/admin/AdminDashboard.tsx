@@ -13,6 +13,7 @@ import UtilsTab from "./UtilsTab";
 import RecalcFirstInSeason from "./RecalcFirstInSeason";
 import ReseedItemsButton from "./ReseedItemsButton";
 import ApplySchemaButton from "./ApplySchemaButton";
+import SnapshotForClaude from "./SnapshotForClaude";
 
 type Tab = "dashboard" | "players" | "whitelist" | "games" | "seasons" | "utils";
 
@@ -61,6 +62,7 @@ export default function AdminDashboard(props: any) {
           <RecalcFirstInSeason />
           <ReseedItemsButton />
           <ApplySchemaButton />
+          <SnapshotForClaude />
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
