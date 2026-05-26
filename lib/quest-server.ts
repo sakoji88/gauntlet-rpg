@@ -118,7 +118,10 @@ export async function peekRegionQuestStatuses(
   const player = await prisma.player.findUnique({ where: { id: playerId } });
   if (!player) return result;
 
-  const allQuests = await prisma.quest.findMany({ where: { playerId } });
+  // Только обычные NPC-квесты (не IRL/админ-квесты — у них отдельный маркер).
+  const allQuests = await prisma.quest.findMany({
+    where: { playerId, type: { not: "IRL" } },
+  });
 
   // Существующие OFFERED/ACTIVE квесты
   for (const q of allQuests) {
@@ -157,6 +160,32 @@ export async function peekRegionQuestStatuses(
     if (tpl) result[regionId] = "OFFERED";
   }
 
+  return result;
+}
+
+/**
+ * READ-ONLY: статус IRL/админ-квестов по регионам для карты.
+ * Отдельная функция чтобы IRL-маркер не перебивал основной NPC-маркер.
+ * Возвращает только регионы, где у игрока есть IRL-квест в статусе OFFERED/ACTIVE.
+ */
+export async function peekIrlQuestStatuses(
+  playerId: string,
+): Promise<Record<string, "OFFERED" | "ACTIVE">> {
+  const result: Record<string, "OFFERED" | "ACTIVE"> = {};
+  const irlQuests = await prisma.quest.findMany({
+    where: {
+      playerId,
+      type: "IRL",
+      status: { in: ["OFFERED", "ACTIVE"] },
+    },
+  });
+  for (const q of irlQuests) {
+    if (q.status === "ACTIVE") {
+      result[q.npcRegion] = "ACTIVE";
+    } else if (result[q.npcRegion] !== "ACTIVE") {
+      result[q.npcRegion] = "OFFERED";
+    }
+  }
   return result;
 }
 

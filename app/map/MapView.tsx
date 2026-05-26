@@ -38,6 +38,8 @@ interface MapViewProps {
   currentRegion: RegionData | null;
   isInPrison: boolean;
   regionQuestStatus: Record<string, "OFFERED" | "ACTIVE">;
+  // IRL/админ-квесты — отдельно, чтобы не перебивать NPC-маркер
+  regionIrlStatus: Record<string, "OFFERED" | "ACTIVE">;
   regionPlayers: Record<string, string[]>;
   perovTrial: PerovTrialData | null;
 }
@@ -48,6 +50,7 @@ export default function MapView({
   currentRegion,
   isInPrison,
   regionQuestStatus,
+  regionIrlStatus,
   regionPlayers,
   perovTrial,
 }: MapViewProps) {
@@ -290,6 +293,7 @@ export default function MapView({
               isDragging={draggingId === region.id}
               editMode={editMode}
               questStatus={regionQuestStatus[region.id]}
+              irlStatus={regionIrlStatus[region.id]}
               players={regionPlayers[region.id] ?? []}
               onHover={(r) => !editMode && setHoveredRegion(r)}
               onLeave={() => !editMode && setHoveredRegion(null)}
@@ -411,6 +415,7 @@ function RegionMarker({
   isDragging,
   editMode,
   questStatus,
+  irlStatus,
   players,
   onHover,
   onLeave,
@@ -425,6 +430,7 @@ function RegionMarker({
   isDragging: boolean;
   editMode: boolean;
   questStatus?: "OFFERED" | "ACTIVE";
+  irlStatus?: "OFFERED" | "ACTIVE";
   players: string[];
   onHover: (r: RegionData) => void;
   onLeave: () => void;
@@ -506,6 +512,41 @@ function RegionMarker({
           zIndex: 30,
         }}>
           {questStatus === "OFFERED" ? "!" : "✓"}
+        </div>
+      )}
+
+      {/* Маркер IRL/админ-квеста — слева-сверху, чтобы не пересекался с NPC.
+          Фиолетовый чтобы визуально отличался. ! = ждёт принятия, ✓ = принят. */}
+      {irlStatus && !editMode && (
+        <div
+          title={
+            irlStatus === "OFFERED"
+              ? "ИРЛ-квест ждёт твоего решения (в свитке /quests)"
+              : "Принят ИРЛ-квест от этого NPC"
+          }
+          style={{
+            position: "absolute",
+            top: "-14px",
+            left: "-14px",
+            width: "20px",
+            height: "20px",
+            borderRadius: "50%",
+            background: irlStatus === "OFFERED" ? "#7a4ab0" : "var(--color-bg-secondary)",
+            border: `2px solid #b88be3`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: irlStatus === "OFFERED" ? "white" : "#b88be3",
+            fontSize: "0.7rem",
+            fontWeight: "bold",
+            fontFamily: "var(--font-cinzel)",
+            boxShadow: "0 0 10px rgba(122,74,176,0.6)",
+            animation: irlStatus === "OFFERED" ? "questPulse 1.8s ease-in-out infinite" : "none",
+            pointerEvents: "auto",
+            zIndex: 30,
+          }}
+        >
+          {irlStatus === "OFFERED" ? "!" : "✓"}
         </div>
       )}
 

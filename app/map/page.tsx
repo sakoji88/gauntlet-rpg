@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { REGIONS, getRegionById } from "@/lib/regions";
 import { getClassById } from "@/lib/classes";
 import { getOrCreatePerovTrial } from "@/lib/perov-server";
-import { peekRegionQuestStatuses } from "@/lib/quest-server";
+import { peekRegionQuestStatuses, peekIrlQuestStatuses } from "@/lib/quest-server";
 import { parseQuestRewards } from "@/lib/quest-types";
 import { ensureEnergyReset } from "@/lib/energy";
 import MapView from "./MapView";
@@ -46,8 +46,10 @@ export default async function MapPage() {
   // игрок свободен, просто стоит на клетке, и должен видеть инфо о других регионах.
   const isInPrison = player.inPrison;
 
-  // Статус квестов по регионам — включая доступные, но ещё не взятые
+  // Статус NPC-квестов по регионам — включая доступные, но ещё не взятые
   const regionQuestStatus = await peekRegionQuestStatuses(player.id);
+  // Статус IRL/админ-квестов — отдельно, чтобы их маркер не перебивал NPC
+  const regionIrlStatus = await peekIrlQuestStatuses(player.id);
 
   // Локации всех игроков — кто где стоит
   const allPlayers = await prisma.player.findMany({
@@ -94,6 +96,7 @@ export default async function MapPage() {
       currentRegion={currentRegion}
       isInPrison={isInPrison}
       regionQuestStatus={regionQuestStatus}
+      regionIrlStatus={regionIrlStatus}
       regionPlayers={regionPlayers}
       perovTrial={perovTrial}
       />
