@@ -32,6 +32,8 @@ export default function ActiveGamePanel({ game, activeHype }: ActiveGameProps) {
   const router = useRouter();
   const [confirming, setConfirming] = useState<"complete" | "drop" | null>(null);
   const [hours, setHours] = useState<string>("");
+  // HLTB Main Story — для бонуса «спидран/тупняк». Опционально.
+  const [hltbHours, setHltbHours] = useState<string>("");
   const [rating, setRating] = useState<string>("");
   // Metacritic — отдельная объективная шкала 0–100. Нужна для RATING-квестов NPC
   // и пассивки Страдальца. Личная rating 0–10 — для лора и отображения.
@@ -58,6 +60,7 @@ export default function ActiveGamePanel({ game, activeHype }: ActiveGameProps) {
         body: JSON.stringify({
           action,
           hours: hours ? parseFloat(hours) : null,
+          hltbHours: hltbHours ? parseFloat(hltbHours) : null,
           rating: rating ? parseInt(rating, 10) : null,
           metacriticRating: metacriticRating ? parseInt(metacriticRating, 10) : null,
           description: description.trim() || null,
@@ -244,6 +247,31 @@ export default function ActiveGamePanel({ game, activeHype }: ActiveGameProps) {
                   placeholder="например: 12.5" style={inputStyle}
                 />
               </label>
+
+              {/* HowLongToBeat — эталон. По нему даём бонус «спидран/тупняк»
+                  (+0..3) и трекаем что ты реально страдал или летал. Опционально. */}
+              <label style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+                <span style={labelStyle}>Часов по HLTB (Main Story) — необязательно</span>
+                <input
+                  type="number" step="0.1"
+                  value={hltbHours}
+                  onChange={(e) => setHltbHours(e.target.value)}
+                  placeholder="например: 10"
+                  style={inputStyle}
+                />
+                <span
+                  style={{
+                    fontSize: "0.7rem",
+                    color: "var(--color-text-dim)",
+                    fontStyle: "italic",
+                  }}
+                >
+                  Если ты прошёл сильно быстрее или сильно дольше эталона —
+                  получишь +1..+3 поинта (спидран или тупняк). Если близко
+                  к эталону — без бонуса. Если оставить пустым — без бонуса.
+                </span>
+              </label>
+
               <label style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
                 <span style={labelStyle}>Оценка игры (0–10)</span>
                 <input
