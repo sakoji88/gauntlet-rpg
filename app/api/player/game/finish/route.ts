@@ -19,19 +19,37 @@ import type { Quest, Player } from "@prisma/client";
 const PRISON_REGION_ID = "prison";
 const POINTS_DROP_PENALTY = -2;
 const EXP_PER_COMPLETION = 10;
-const PRISON_EXP_REWARD = 5;    // EXP за тюремную игру — меньше обычного
+const PRISON_EXP_REWARD = 8;    // EXP за тюремную (раньше 5 — слишком мало за длинные VN)
 
-// Злато (мягкая валюта магазина) — капает за прохождения
-const GOLD_PER_COMPLETION = 3;  // обычная пройденная игра
-const GOLD_PER_PRISON = 1;      // тюремная игра — меньше
 const GOLD_PER_QUEST = 5;       // выполненный квест
+const BAZAR_GOLD_BONUS = 3;     // +3 Злата если засчитал в Базаре (было +2)
 
-// Тюремные награды (накладываются вместе, можно получить все три)
-const PRISON_FAST_BONUS = 1;        // прошёл быстро (часов ≤ 9)
-const PRISON_FAST_THRESHOLD = 9;
-const PRISON_HARD_BONUS = 1;        // макс. сложность
-const PRISON_LOW_RATING_BONUS = 1;  // прошёл реально плохую игру (рейтинг ≤ 30)
-const PRISON_LOW_RATING_THRESHOLD = 30;
+// Базовое злато за прохождение — масштабируется по часам:
+//   max(2, round(√hours × 2))
+// Коротыши дают 2-3, длинные — больше. Стимул играть длинное.
+function goldFromHours(hours: number | null): number {
+  if (hours === null || hours <= 0) return 3; // дефолт если игрок не вписал
+  return Math.max(2, Math.round(Math.sqrt(hours) * 2));
+}
+
+// === ТЮРЬМА — лёгкий нудж, не пир. ===
+//   base = max(1, round(√hours))   // 10ч = 3, 25ч = 5
+//   + 1 за освобождение всегда
+//   + 1 если ≤8ч (быстрая отсидка)
+//   + 1 если макс. сложность
+//   + 1 если Metacritic ≤40 (плохая игра — Сладость Дна)
+const PRISON_RELEASE_BONUS = 1;
+const PRISON_FAST_BONUS = 1;
+const PRISON_FAST_THRESHOLD = 8;     // ≤8 ч (раньше 9)
+const PRISON_HARD_BONUS = 1;
+const PRISON_LOW_RATING_BONUS = 1;
+const PRISON_LOW_RATING_THRESHOLD = 40; // ≤40 Metacritic (раньше 30)
+const GOLD_PER_PRISON = 2;            // тюремное злато (раньше 1)
+
+function prisonBasePoints(hours: number | null): number {
+  if (hours === null || hours <= 0) return 1;
+  return Math.max(1, Math.round(Math.sqrt(hours)));
+}
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -71,13 +89,30 @@ export async function POST(req: Request) {
     // Поинты дают ТОЛЬКО за реальные заслуги: скорость, макс. сложность, низкий рейтинг.
     if (game.region === PRISON_REGION_ID) {
       const hoursNum = typeof hours === "number" ? hours : null;
-      const ratingNum = typeof rating === "number" ? rating : null;
+      const ratingNum = typeof rating === "number" ? rating : null; // личная 0-10
+      const mcNum = typeof metacriticRating === "number" ? metacriticRating : null;
       const maxDiff = Boolean(isMaxDifficulty);
 
       const breakdown: { label: string; value: number; type: "base" | "bonus" | "penalty" | "multiplier" }[] = [];
-      let total = 0;
 
-      // ⚡ Скорая отсидка — прошёл быстро (часов ≤ 9, минимум 6)
+      // База за часы (sqrt-кривая, низкая ставка — это всё-таки тюрьма)
+      const base = prisonBasePoints(hoursNum);
+      let total = base;
+      breakdown.push({
+        label: `База тюрьмы: √${hoursNum ?? 0}ч`,
+        value: base,
+        type: "base",
+      });
+
+      // 🔓 Освобождение — всегда +1
+      total += PRISON_RELEASE_BONUS;
+      breakdown.push({
+        label: "Освобождение",
+        value: PRISON_RELEASE_BONUS,
+        type: "bonus",
+      });
+
+      // ⚡ Скорая отсидка — прошёл быстро (≤8 ч)
       if (hoursNum !== null && hoursNum <= PRISON_FAST_THRESHOLD) {
         total += PRISON_FAST_BONUS;
         breakdown.push({
@@ -87,7 +122,7 @@ export async function POST(req: Request) {
         });
       }
 
-      // 💪 Гордость зэка — макс. сложность на тюремной дряни
+      // 💪 Гордость зэка — макс. сложность
       if (maxDiff) {
         total += PRISON_HARD_BONUS;
         breakdown.push({
@@ -97,21 +132,12 @@ export async function POST(req: Request) {
         });
       }
 
-      // 🩸 Сладость Дна — реально плохая игра (рейтинг ≤30)
-      if (ratingNum !== null && ratingNum <= PRISON_LOW_RATING_THRESHOLD) {
+      // 🩸 Сладость Дна — плохая игра (Metacritic ≤40)
+      if (mcNum !== null && mcNum <= PRISON_LOW_RATING_THRESHOLD) {
         total += PRISON_LOW_RATING_BONUS;
         breakdown.push({
-          label: `Сладость Дна (рейтинг ≤${PRISON_LOW_RATING_THRESHOLD})`,
+          label: `Сладость Дна (Metacritic ≤${PRISON_LOW_RATING_THRESHOLD})`,
           value: PRISON_LOW_RATING_BONUS,
-          type: "bonus",
-        });
-      }
-
-      // Если ничего не выпало — добавляем нейтральную строку для показа в разборе
-      if (breakdown.length === 0) {
-        breakdown.push({
-          label: "Освобождён без бонусов",
-          value: 0,
           type: "bonus",
         });
       }
@@ -337,11 +363,15 @@ export async function POST(req: Request) {
       },
     });
 
-    // Пассивка «находит Злато» — +2 Злата за игру.
-    // Пассивка Базара — +2 Злата если игрок засчитал игру стоя в Базаре.
+    // Базовое Злато — масштабируется по часам (max(2, √h × 2)).
+    // Пассивка «находит Злато»: +2 Злата за игру.
+    // Базар: +3 Злата если засчитал стоя в Базаре.
     const hasGoldFind = await hasPassiveEffect(player.id, "passive_gold_find");
-    const bazarBonus = player.currentRegion === "bazar" ? 2 : 0;
-    let goldGain = GOLD_PER_COMPLETION + (hasGoldFind ? 2 : 0) + bazarBonus;
+    const bazarBonus = player.currentRegion === "bazar" ? BAZAR_GOLD_BONUS : 0;
+    let goldGain =
+      goldFromHours(typeof hours === "number" ? hours : null) +
+      (hasGoldFind ? 2 : 0) +
+      bazarBonus;
     if (goldDoubleActive) goldGain *= 2; // Чизкейк Нью-Йорк
 
     // Контузия от Зигомёта Чахлика — обнуляет EXP за эту игру.

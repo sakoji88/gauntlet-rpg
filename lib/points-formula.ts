@@ -1,41 +1,41 @@
-// Расчёт поинтов за прохождение игры — учитывает класс, статы, регион, фазу сезона.
-// Возвращает структуру с финальной суммой и подробным разбором (для показа игроку).
+// Расчёт поинтов за прохождение игры.
+//
+// === ФИЛОСОФИЯ ===
+// Базовая ценность игры пропорциональна КОРНЮ из часов: base = √hours × 3.
+// Свойство sqrt: N часов в одной игре ≈ √N коротышей по 1 часу.
+// Это значит «несколько коротких ≈ одна длинная» по часам — игроки не могут
+// нафармить больше, чем у пути длинных игр.
+//
+// Дальше — % множители (условие, регион, класс, статы, фаза) и плоские
+// бонусы (струггл, ловушки, активки). Cap 50 (75 с Сердцем Тьмы).
 
 import { getRegionById } from "./regions";
 
-// Жанры, которые считаются "hardcore" — для бонуса СИЛЫ и Берсерка
-const HARDCORE_GENRES = ["Souls-like", "Action", "Fighting", "Beat'em up"];
-
-// Жанры, привязанные к каждому региону (повторяет данные из regions.ts —
-// но мы храним отдельно для гибкости и не зависим от того что в данных региона)
 function isGameInRegionGenres(gameRegion: string): boolean {
-  // Если игра роллилась в регионе — она автоматически в его жанре
   return Boolean(gameRegion);
 }
 
 export interface PointsBreakdownEntry {
-  label: string;       // Что это
-  value: number;       // Сколько поинтов
+  label: string;
+  value: number;
   type: "base" | "bonus" | "penalty" | "multiplier";
 }
 
 export interface PointsResult {
   total: number;
   breakdown: PointsBreakdownEntry[];
-  cappedAt25: boolean;
+  cappedAt25: boolean; // legacy название — теперь это просто "сработал ли cap"
 }
 
 interface CalcInput {
   // Данные игры
-  region: string;            // ID региона где прошёл (chakhly-bor и т.д.)
-  hours: number | null;      // Часов на прохождение
-  rating: number | null;     // Личная оценка игрока (шкала 0-10).
-                             // Используется для квестов RATING, отображения и т.п.
-  metacriticRating?: number | null; // Объективная оценка Metacritic 0-100.
-                                    // Сейчас читается ТОЛЬКО для пассивки Страдальца
-                                    // (Сладость Страдания / Презрение к Успеху).
-  isMaxDifficulty: boolean;  // Прошёл ли на макс. сложности (потом ставит юзер)
-  conditionType: "basic" | "genre" | "special"; // Тип условий, выбранный при ролле
+  region: string;
+  hours: number | null;            // часов потрачено игроком
+  hltbHours?: number | null;       // эталон по HowLongToBeat (для struggle bonus)
+  rating: number | null;           // личная оценка 0-10 (для лора)
+  metacriticRating?: number | null; // 0-100, для пассивки Страдальца
+  isMaxDifficulty: boolean;
+  conditionType: "basic" | "genre" | "special";
 
   // Данные игрока
   playerClass: string | null;
@@ -45,106 +45,181 @@ interface CalcInput {
   charisma: number;
 
   // Данные сезона
-  seasonDay: number;         // Какой сейчас день сезона (1..21)
+  seasonDay: number;
 
-  // Активные предметы / эффекты на игрока (на будущее)
-  activeBuffs?: string[];    // эффекты-ключи, например ["greed_ring", "heart_of_dark"]
-  activeTraps?: string[];    // эффекты-ключи дебаффов от других игроков
+  // Активные эффекты
+  activeBuffs?: string[];
+  activeTraps?: string[];
 
-  // +поинты, если игрок первым в сезоне прошёл эту игру (учитывается до лимита 25)
+  // Первопроходец сезона (раз в сезон)
   firstInSeasonBonus?: number;
 
-  // Дополнительный плоский бонус от баффов предметов (catch_up, lucky_loser и т.п.),
-  // с готовой подписью. Применяется до лимита 25.
+  // Плоский бонус от баффов с готовой подписью (catch_up, lucky_loser, монетки)
   itemFlatBonus?: { label: string; value: number };
 }
+
+// === КОНСТАНТЫ БАЛАНСА ===
+const BASE_HOURS_RATE = 3;          // √hours × 3 — базовая ставка поинтов
+const FALLBACK_HOURS = 5;           // если игрок не вписал часы
+
+const COND_MULT = { basic: 1.0, genre: 1.3, special: 1.6 } as const;
+const REGION_MULT = 1.05;           // +5% если игра в профильном регионе и cond genre/special
+const STRENGTH_DIVISOR = 100;       // мягкий буст: сила/100 на Пустырях
+const PATIENCE_DIVISOR = 120;       // мягкий буст: терпение/120 на 15ч+
+const CHARISMA_DIVISOR = 200;       // мягкий буст: харизма/200 всегда
+
+const LOREMAN_MULT_15H = 1.15;
+const LOREMAN_MULT_30H = 1.25;
+const LOREMAN_MULT_50H = 1.4;
+const LOREMAN_PENALTY_LT5H = 0.7;   // смягчили с ×0.5 — мягкий «фи», не казнь
+
+const BERSERKER_MAX_DIFF_MULT = 1.3;
+const SUFFERER_MULT_LT60 = 1.2;
+const SUFFERER_MULT_LT40 = 1.4;
+const SUFFERER_PENALTY_GT85 = 0.7;
+
+const PUNISH_TSHIRT_MULT = 1.3;     // points_mult_next
+const PHASE_RACE_MULT = 1.3;        // 15+ день сезона
+const FURY_MULT = 1.5;              // Ярость Бати на max diff
+const HEART_OF_DARK_MULT = 2;       // Сердце Тьмы на max diff (раньше ×3)
+const SELF_FLAG_FLAT = 5;           // Самобичевание — теперь +5 плоско вместо ×2
+const HYPE_SUCCESS = 5;
+const HYPE_FAIL = -3;
+
+const STRUGGLE_BONUS_CAP = 3;
+
+const CAP_NORMAL = 50;
+const CAP_HEART_OF_DARK = 75;
 
 // === ОСНОВНАЯ ФУНКЦИЯ ===
 export function calculatePoints(input: CalcInput): PointsResult {
   const breakdown: PointsBreakdownEntry[] = [];
+  const hours = input.hours !== null && input.hours > 0 ? input.hours : FALLBACK_HOURS;
 
-  // 1) БАЗА
-  const BASE_POINTS = 3;
-  let raw = BASE_POINTS;
-  breakdown.push({ label: "База за прохождение", value: BASE_POINTS, type: "base" });
+  // 1) БАЗА: √hours × 3
+  let raw = Math.round(Math.sqrt(hours) * BASE_HOURS_RATE);
+  if (raw < 1) raw = 1;
+  breakdown.push({
+    label: `База: √${input.hours ?? FALLBACK_HOURS}ч × ${BASE_HOURS_RATE}`,
+    value: raw,
+    type: "base",
+  });
 
-  // 2) ТИП УСЛОВИЙ РОЛЛА — задаётся при ролле, не меняется при засчёте
-  // basic +0 (только база), genre +3, special +7
-  if (input.conditionType === "genre") {
-    raw += 3;
-    breakdown.push({ label: "Жанровые условия NPC", value: 3, type: "bonus" });
-  } else if (input.conditionType === "special") {
-    raw += 7;
-    breakdown.push({ label: "Особое условие NPC 💎", value: 7, type: "bonus" });
+  // 2) УСЛОВИЕ (множитель)
+  const condMult =
+    COND_MULT[input.conditionType as keyof typeof COND_MULT] ?? 1.0;
+  if (condMult !== 1.0) {
+    const before = raw;
+    raw = Math.round(raw * condMult);
+    breakdown.push({
+      label: `${input.conditionType === "special" ? "Особое условие 💎" : "Жанровое условие"} ×${condMult}`,
+      value: raw - before,
+      type: "multiplier",
+    });
   }
 
-  // 3) РЕГИОНАЛЬНЫЙ ПАССИВНЫЙ БОНУС (если ты находишься В регионе данной игры)
-  if (isGameInRegionGenres(input.region)) {
-    raw += 1;
+  // 3) РЕГИОН — только если игрок взял genre/special профильные условия
+  if (
+    (input.conditionType === "genre" || input.conditionType === "special") &&
+    isGameInRegionGenres(input.region)
+  ) {
+    const before = raw;
+    raw = Math.round(raw * REGION_MULT);
     const region = getRegionById(input.region);
     breakdown.push({
-      label: `Регион «${region?.shortName ?? input.region}»: пассивный бонус`,
-      value: 1,
-      type: "bonus",
+      label: `Регион «${region?.shortName ?? input.region}» ×${REGION_MULT}`,
+      value: raw - before,
+      type: "multiplier",
     });
   }
 
-  // 4) БОНУСЫ ОТ СТАТОВ
-  // Каждые 4 очка статов = +1 поинт при определённых условиях
-
-  // СИЛА — за hardcore игры (Souls-like, Fighting, Action, Beat'em up)
-  // Так как реальных тегов игры у нас нет, используем регион Пустыри как индикатор
-  if (input.region === "pustyri") {
-    const strengthBonus = Math.floor(input.strength / 4);
-    if (strengthBonus > 0) {
-      raw += strengthBonus;
+  // 4) СТАТЫ как мягкие %
+  if (input.region === "pustyri" && input.strength > 0) {
+    const mult = 1 + input.strength / STRENGTH_DIVISOR;
+    const before = raw;
+    raw = Math.round(raw * mult);
+    if (raw !== before) {
       breakdown.push({
-        label: `Сила ${input.strength} → бонус за hardcore`,
-        value: strengthBonus,
-        type: "bonus",
+        label: `Сила ${input.strength} ×${mult.toFixed(2)} (Пустыри)`,
+        value: raw - before,
+        type: "multiplier",
       });
     }
   }
 
-  // ТЕРПЕНИЕ — за длинные игры (15+ часов)
-  if (input.hours !== null && input.hours >= 15) {
-    const patienceBonus = Math.floor(input.patience / 4);
-    if (patienceBonus > 0) {
-      raw += patienceBonus;
+  if (hours >= 15 && input.patience > 0) {
+    const mult = 1 + input.patience / PATIENCE_DIVISOR;
+    const before = raw;
+    raw = Math.round(raw * mult);
+    if (raw !== before) {
       breakdown.push({
-        label: `Терпение ${input.patience} → бонус за длинную игру`,
-        value: patienceBonus,
-        type: "bonus",
+        label: `Терпение ${input.patience} ×${mult.toFixed(2)} (15ч+)`,
+        value: raw - before,
+        type: "multiplier",
       });
     }
   }
 
-  // ХАРИЗМА — общий бонус (за каждую игру) — небольшой, +1 за каждые 6 очков
-  const charismaBonus = Math.floor(input.charisma / 6);
-  if (charismaBonus > 0) {
-    raw += charismaBonus;
+  if (input.charisma > 0) {
+    const mult = 1 + input.charisma / CHARISMA_DIVISOR;
+    const before = raw;
+    raw = Math.round(raw * mult);
+    if (raw !== before) {
+      breakdown.push({
+        label: `Харизма ${input.charisma} ×${mult.toFixed(2)}`,
+        value: raw - before,
+        type: "multiplier",
+      });
+    }
+  }
+
+  // 5) КЛАССОВЫЙ БУСТ (множитель)
+  const classBuff = applyClassMultiplier(raw, input);
+  if (classBuff.label) {
+    raw = classBuff.newRaw;
     breakdown.push({
-      label: `Харизма ${input.charisma} → природное обаяние`,
-      value: charismaBonus,
-      type: "bonus",
+      label: classBuff.label,
+      value: classBuff.delta,
+      type: "multiplier",
     });
   }
 
-  // 5) БОНУСЫ ОТ КЛАССА
-  const classBonus = getClassBonus(input);
-  if (classBonus.value !== 0) {
-    raw += classBonus.value;
-    breakdown.push(classBonus);
+  // 6) КЛАССОВЫЙ ШТРАФ (множитель < 1)
+  const classPenalty = applyClassPenalty(raw, input);
+  if (classPenalty.label) {
+    raw = classPenalty.newRaw;
+    breakdown.push({
+      label: classPenalty.label,
+      value: classPenalty.delta,
+      type: "penalty",
+    });
   }
 
-  // 6) ШТРАФЫ ОТ КЛАССА
-  const classPenalty = getClassPenalty(input);
-  if (classPenalty.value !== 0) {
-    raw += classPenalty.value; // value уже отрицательное
-    breakdown.push(classPenalty);
+  // 7) Punish-футболка (×1.3 вместо старого 1.5)
+  if (input.activeBuffs?.includes("points_mult_next")) {
+    const before = raw;
+    raw = Math.round(raw * PUNISH_TSHIRT_MULT);
+    breakdown.push({
+      label: `Punish-футболка ×${PUNISH_TSHIRT_MULT}`,
+      value: raw - before,
+      type: "multiplier",
+    });
   }
 
-  // 6.5) ПЕРВОПРОХОДЕЦ СЕЗОНА (раз за сезон, тому кто первым вообще завершил игру)
+  // 8) ФАЗА ГОНКИ (15+ день сезона)
+  if (input.seasonDay >= 15) {
+    const before = raw;
+    raw = Math.round(raw * PHASE_RACE_MULT);
+    breakdown.push({
+      label: `Фаза Гонки ×${PHASE_RACE_MULT}`,
+      value: raw - before,
+      type: "multiplier",
+    });
+  }
+
+  // === ПЛОСКИЕ БОНУСЫ/ШТРАФЫ ===
+
+  // Первопроходец Сезона
   if (input.firstInSeasonBonus && input.firstInSeasonBonus > 0) {
     raw += input.firstInSeasonBonus;
     breakdown.push({
@@ -154,6 +229,7 @@ export function calculatePoints(input: CalcInput): PointsResult {
     });
   }
 
+  // ItemFlatBonus с готовой подписью (catch_up, lucky_loser, монетки)
   if (input.itemFlatBonus && input.itemFlatBonus.value !== 0) {
     raw += input.itemFlatBonus.value;
     breakdown.push({
@@ -163,7 +239,7 @@ export function calculatePoints(input: CalcInput): PointsResult {
     });
   }
 
-  // 6.6) БАФФЫ «+поинты следующей игре» (расходники-баффы)
+  // Расходники +N
   const pointsBuffs: Array<[string, number]> = [
     ["points_next_2", 2],
     ["points_next_3", 3],
@@ -176,11 +252,13 @@ export function calculatePoints(input: CalcInput): PointsResult {
     }
   }
 
-  // 7) АКТИВНЫЕ ПРЕДМЕТЫ (на будущее)
+  // Кольцо Жадности
   if (input.activeBuffs?.includes("greed_ring")) {
     raw += 1;
-    breakdown.push({ label: "Кольцо Жадности", value: 1, type: "bonus" });
+    breakdown.push({ label: "Кольцо Жадности +1", value: 1, type: "bonus" });
   }
+
+  // Ловушки
   if (input.activeTraps?.includes("rotten_shawarma")) {
     raw -= 2;
     breakdown.push({ label: "Тухлая Шаурма (ловушка)", value: -2, type: "penalty" });
@@ -190,64 +268,63 @@ export function calculatePoints(input: CalcInput): PointsResult {
     breakdown.push({ label: "Проклятье барина (ловушка)", value: -2, type: "penalty" });
   }
 
-  // === АКТИВКИ КЛАССОВ (стакаются с другими множителями) ===
+  // Самобичевание — плоское +5 (раньше ×2 — слишком жирно при новой базе)
+  if (input.activeBuffs?.includes("class_self_flag")) {
+    raw += SELF_FLAG_FLAT;
+    breakdown.push({ label: `Самобичевание +${SELF_FLAG_FLAT}`, value: SELF_FLAG_FLAT, type: "bonus" });
+  }
 
-  // Ярость Бати: ×2 если макс. сложность
+  // Хайп
+  if (input.activeBuffs?.includes("class_hype_success")) {
+    raw += HYPE_SUCCESS;
+    breakdown.push({ label: `Хайп выполнен +${HYPE_SUCCESS}`, value: HYPE_SUCCESS, type: "bonus" });
+  } else if (input.activeBuffs?.includes("class_hype_fail")) {
+    raw += HYPE_FAIL;
+    breakdown.push({ label: `Хайп провален ${HYPE_FAIL}`, value: HYPE_FAIL, type: "penalty" });
+  }
+
+  // === КРИТМНОЖИТЕЛИ (после плоских — чтобы стакалось правильно) ===
+
+  // Ярость Бати ×1.5 на max diff
   if (input.activeBuffs?.includes("class_fury") && input.isMaxDifficulty) {
     const before = raw;
-    raw = raw * 2;
-    breakdown.push({ label: "Ярость Бати — ×2", value: raw - before, type: "multiplier" });
+    raw = Math.round(raw * FURY_MULT);
+    breakdown.push({ label: `Ярость Бати ×${FURY_MULT}`, value: raw - before, type: "multiplier" });
   }
 
-  // Самобичевание: ×2 на любую следующую игру (доверие)
-  if (input.activeBuffs?.includes("class_self_flag")) {
-    const before = raw;
-    raw = raw * 2;
-    breakdown.push({ label: "Самобичевание — ×2", value: raw - before, type: "multiplier" });
-  }
-
-  // Хайп Барда — +5 если выполнил, -3 если нет (отдельный сигнал из body)
-  if (input.activeBuffs?.includes("class_hype_success")) {
-    raw += 5;
-    breakdown.push({ label: "Хайп выполнен — +5", value: 5, type: "bonus" });
-  } else if (input.activeBuffs?.includes("class_hype_fail")) {
-    raw -= 3;
-    breakdown.push({ label: "Хайп провален — −3", value: -3, type: "penalty" });
-  }
-
-  // Очень мощный бафф — Сердце Тьмы — даёт x3 (если игрок принял на макс. сложности)
-  let hardCapMultiplier = 1;
+  // Сердце Тьмы ×2 на max diff
+  let heartActive = false;
   if (input.activeBuffs?.includes("heart_of_dark") && input.isMaxDifficulty) {
-    hardCapMultiplier = 3;
-    breakdown.push({ label: "Сердце Тьмы — x3", value: raw * 2, type: "multiplier" });
-    raw = raw * 3;
-  }
-
-  // 7.5) МНОЖИТЕЛЬ ОТ ПРЕДМЕТА — ×1.5
-  if (input.activeBuffs?.includes("points_mult_next")) {
+    heartActive = true;
     const before = raw;
-    raw = Math.round(raw * 1.5);
-    breakdown.push({
-      label: "Бафф предмета: ×1.5",
-      value: raw - before,
-      type: "multiplier",
-    });
+    raw = Math.round(raw * HEART_OF_DARK_MULT);
+    breakdown.push({ label: `Сердце Тьмы ×${HEART_OF_DARK_MULT}`, value: raw - before, type: "multiplier" });
   }
 
-  // 8) ФАЗОВЫЙ МНОЖИТЕЛЬ — на 15+ дне сезона x1.5
-  if (input.seasonDay >= 15) {
-    const before = raw;
-    raw = Math.round(raw * 1.5);
-    breakdown.push({
-      label: "Фаза Гонки (день 15+): множитель ×1.5",
-      value: raw - before,
-      type: "multiplier",
-    });
+  // Struggle bonus (HLTB) — +0..3 за отклонение от эталона
+  if (
+    input.hltbHours !== null &&
+    input.hltbHours !== undefined &&
+    input.hltbHours > 0 &&
+    input.hours !== null &&
+    input.hours > 0
+  ) {
+    const ratio = input.hours / input.hltbHours;
+    const dev = Math.abs(Math.log(ratio));
+    const bonus = Math.max(0, Math.min(STRUGGLE_BONUS_CAP, Math.round(dev * 2)));
+    if (bonus > 0) {
+      raw += bonus;
+      breakdown.push({
+        label: `${ratio < 1 ? "Спидран" : "Тупняк"} ×${ratio.toFixed(2)} от HLTB +${bonus}`,
+        value: bonus,
+        type: "bonus",
+      });
+    }
   }
 
-  // 9) ЛИМИТ 25 — для всех кроме случая с Сердцем Тьмы (там до 75)
-  const cap = hardCapMultiplier > 1 ? 75 : 25;
-  let cappedAt25 = false;
+  // === CAP ===
+  const cap = heartActive ? CAP_HEART_OF_DARK : CAP_NORMAL;
+  let capHit = false;
   if (raw > cap) {
     breakdown.push({
       label: `Лимит ${cap} поинтов/игру`,
@@ -255,85 +332,96 @@ export function calculatePoints(input: CalcInput): PointsResult {
       type: "penalty",
     });
     raw = cap;
-    cappedAt25 = true;
+    capHit = true;
   }
+  if (raw < 1) raw = 1; // никогда не 0 — за прохождение всегда что-то
 
-  // Минимум 0 (если штрафы перевесили)
-  if (raw < 0) raw = 0;
-
-  return { total: raw, breakdown, cappedAt25 };
+  return { total: raw, breakdown, cappedAt25: capHit };
 }
 
-// === БОНУС КЛАССА ===
-function getClassBonus(input: CalcInput): PointsBreakdownEntry {
+// === КЛАССОВЫЕ МНОЖИТЕЛИ ===
+function applyClassMultiplier(
+  raw: number,
+  input: CalcInput,
+): { newRaw: number; delta: number; label: string } {
   switch (input.playerClass) {
     case "berserker":
-      // Натиск Бати — на макс. сложности +50%
       if (input.isMaxDifficulty) {
-        return { label: "Берсерк: натиск (макс. сложность)", value: 3, type: "bonus" };
+        const next = Math.round(raw * BERSERKER_MAX_DIFF_MULT);
+        return { newRaw: next, delta: next - raw, label: `Берсерк max сложность ×${BERSERKER_MAX_DIFF_MULT}` };
       }
       break;
 
     case "loreman":
-      // Терпеливое Око — за 15+/30+/50+ часов +3/5/10
       if (input.hours !== null) {
-        if (input.hours >= 50) return { label: "Лороман: Терпеливое Око (50+ ч)", value: 10, type: "bonus" };
-        if (input.hours >= 30) return { label: "Лороман: Терпеливое Око (30+ ч)", value: 5, type: "bonus" };
-        if (input.hours >= 15) return { label: "Лороман: Терпеливое Око (15+ ч)", value: 3, type: "bonus" };
+        if (input.hours >= 50) {
+          const next = Math.round(raw * LOREMAN_MULT_50H);
+          return { newRaw: next, delta: next - raw, label: `Лороман 50ч+ ×${LOREMAN_MULT_50H}` };
+        }
+        if (input.hours >= 30) {
+          const next = Math.round(raw * LOREMAN_MULT_30H);
+          return { newRaw: next, delta: next - raw, label: `Лороман 30ч+ ×${LOREMAN_MULT_30H}` };
+        }
+        if (input.hours >= 15) {
+          const next = Math.round(raw * LOREMAN_MULT_15H);
+          return { newRaw: next, delta: next - raw, label: `Лороман 15ч+ ×${LOREMAN_MULT_15H}` };
+        }
       }
       break;
 
-    case "sufferer":
-      // Сладость Страдания — за Metacritic <60 +3, <40 +6.
-      // У Страдальца отдельное поле metacriticRating (0..100), личная оценка
-      // (0..10) для этого не подходит.
-      if (input.metacriticRating !== null && input.metacriticRating !== undefined) {
-        if (input.metacriticRating < 40) return { label: "Страдалец: Сладость (Metacritic <40)", value: 6, type: "bonus" };
-        if (input.metacriticRating < 60) return { label: "Страдалец: Сладость (Metacritic <60)", value: 3, type: "bonus" };
+    case "sufferer": {
+      const mc = input.metacriticRating;
+      if (mc !== null && mc !== undefined) {
+        if (mc < 40) {
+          const next = Math.round(raw * SUFFERER_MULT_LT40);
+          return { newRaw: next, delta: next - raw, label: `Страдалец (Metacritic <40) ×${SUFFERER_MULT_LT40}` };
+        }
+        if (mc < 60) {
+          const next = Math.round(raw * SUFFERER_MULT_LT60);
+          return { newRaw: next, delta: next - raw, label: `Страдалец (Metacritic <60) ×${SUFFERER_MULT_LT60}` };
+        }
       }
       break;
-
-    case "alchemist":
-      // Алхимик не имеет прямых бонусов поинтов
-      break;
-
-    case "bard":
-      // Бард — +2 за квесты (но не за игры) — применяется в 3.6.2
-      break;
-
-    case "urka":
-      // Урка — слабость в квестах NPC (применяется в 3.6.2)
-      break;
+    }
   }
-  return { label: "", value: 0, type: "bonus" };
+  return { newRaw: raw, delta: 0, label: "" };
 }
 
-// === ШТРАФ КЛАССА ===
-function getClassPenalty(input: CalcInput): PointsBreakdownEntry {
+// === КЛАССОВЫЕ ШТРАФЫ ===
+function applyClassPenalty(
+  raw: number,
+  input: CalcInput,
+): { newRaw: number; delta: number; label: string } {
   switch (input.playerClass) {
     case "loreman":
-      // -1 за игры <5 часов
+      // Презрение к Мелочи — теперь ×0.7 (раньше ×0.5 / -1). Мягкое «фи».
       if (input.hours !== null && input.hours < 5) {
-        return { label: "Лороман: Презрение к Мелочи (<5 ч)", value: -1, type: "penalty" };
+        const next = Math.round(raw * LOREMAN_PENALTY_LT5H);
+        return {
+          newRaw: next,
+          delta: next - raw,
+          label: `Лороман <5ч ×${LOREMAN_PENALTY_LT5H} (Презрение к Мелочи)`,
+        };
       }
       break;
 
-    case "sufferer":
-      // -2 за игры с Metacritic >85
-      if (
-        input.metacriticRating !== null &&
-        input.metacriticRating !== undefined &&
-        input.metacriticRating > 85
-      ) {
-        return { label: "Страдалец: Презрение к Успеху (Metacritic >85)", value: -2, type: "penalty" };
+    case "sufferer": {
+      const mc = input.metacriticRating;
+      if (mc !== null && mc !== undefined && mc > 85) {
+        const next = Math.round(raw * SUFFERER_PENALTY_GT85);
+        return {
+          newRaw: next,
+          delta: next - raw,
+          label: `Страдалец >85 Metacritic ×${SUFFERER_PENALTY_GT85} (Презрение к Успеху)`,
+        };
       }
       break;
+    }
   }
-  return { label: "", value: 0, type: "penalty" };
+  return { newRaw: raw, delta: 0, label: "" };
 }
 
-// === Вспомогательный: получить текущий день сезона ===
-// Использует startedAt сезона и текущую дату
+// === День сезона (UTC) ===
 export function getSeasonDay(startedAt: Date | null): number {
   if (!startedAt) return 1;
   const now = new Date();

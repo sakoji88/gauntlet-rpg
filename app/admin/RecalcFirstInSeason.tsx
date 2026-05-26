@@ -4,10 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { RotateCcw, Loader2 } from "lucide-react";
 
-// Кнопка перерасчёта бонуса «+2 первым прошёл» в текущем сезоне.
-// 1) Делает dry-run, показывает список затронутых игр и дельты по игрокам.
-// 2) Спрашивает подтверждение.
-// 3) Применяет (POST с dryRun=false).
+// Полный перерасчёт поинтов всех завершённых игр текущего сезона
+// по новой формуле (sqrt(hours)×3 + множители + cap 50/75).
+// Endpoint оставлен под старым именем для обратной совместимости.
+//
+// Flow: dry-run → confirm с разбором по игрокам → apply.
 export default function RecalcFirstInSeason() {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -26,28 +27,31 @@ export default function RecalcFirstInSeason() {
         alert(dryData.error ?? "Ошибка при dry-run");
         return;
       }
-      const adj: Array<{ playerNickname: string; delta: number }> =
-        dryData.playerDeltas?.map((d: any) => {
-          const a = dryData.adjustments.find((x: any) => x.playerId === d.playerId);
-          return { playerNickname: a?.playerNickname ?? d.playerId, delta: d.delta };
-        }) ?? [];
+      const playerDeltas: Array<{ nickname: string; delta: number; games: number }> =
+        dryData.playerDeltas ?? [];
 
-      if (adj.length === 0) {
+      if (playerDeltas.length === 0) {
         alert(
-          `Перерасчёт: нечего править. Игр в сезоне: ${dryData.totalGames}. ` +
-            `Дубликатов нет.`,
+          `Перерасчёт: все ${dryData.totalGames} игр уже корректны по новой формуле.`,
         );
         return;
       }
 
-      const lines = adj
-        .sort((a, b) => a.delta - b.delta)
-        .map((d) => `  ${d.playerNickname}: ${d.delta}`)
+      const lines = playerDeltas
+        .sort((a, b) => b.delta - a.delta) // сверху те кто плюсанёт, снизу кто минусанёт
+        .map(
+          (d) =>
+            `  ${d.nickname}: ${d.delta > 0 ? "+" : ""}${d.delta} (${d.games} ${d.games === 1 ? "игра" : "игр"})`,
+        )
         .join("\n");
 
       const ok = confirm(
-        `Перерасчёт «первым прошёл» — затронуто игроков: ${adj.length}\n\n` +
-          `Изменения:\n${lines}\n\n` +
+        `ПОЛНЫЙ ПЕРЕРАСЧЁТ ПОИНТОВ СЕЗОНА\n\n` +
+          `Игр в сезоне: ${dryData.totalGames}\n` +
+          `Изменится поинтов: ${dryData.affectedGames}\n` +
+          `Игроков затронуто: ${playerDeltas.length}\n\n` +
+          `Дельты по игрокам:\n${lines}\n\n` +
+          `Также обновится game.pointsEarned у каждой изменённой игры.\n\n` +
           `Применить?`,
       );
       if (!ok) return;
@@ -63,7 +67,11 @@ export default function RecalcFirstInSeason() {
         alert(applyData.error ?? "Ошибка применения");
         return;
       }
-      alert(`Готово. Перерасчёт применён к ${applyData.appliedTo} игрокам.`);
+      alert(
+        `Готово.\n` +
+          `Обновлено игр: ${applyData.appliedToGames}\n` +
+          `Затронуто игроков: ${applyData.appliedToPlayers}`,
+      );
       router.refresh();
     } catch (e) {
       console.error(e);
@@ -77,7 +85,7 @@ export default function RecalcFirstInSeason() {
     <button
       onClick={run}
       disabled={busy}
-      title="Снять +2 «первым прошёл» с тех, кому он начислился по ошибке (дубликаты по нормализованному названию)"
+      title="Полный пересчёт поинтов всех завершённых игр сезона по новой формуле"
       style={{
         display: "inline-flex",
         alignItems: "center",
@@ -94,7 +102,7 @@ export default function RecalcFirstInSeason() {
       }}
     >
       {busy ? <Loader2 size={13} className="spin" /> : <RotateCcw size={13} />}
-      Перерасчёт «первым прошёл»
+      Перерасчёт поинтов сезона
       <style>{`.spin { animation: spin 1s linear infinite; } @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </button>
   );
