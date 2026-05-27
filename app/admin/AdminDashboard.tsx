@@ -59,6 +59,12 @@ export default function AdminDashboard(props: any) {
           }}>
             📜 Контент
           </Link>
+          <Link href="/admin/perov" style={{
+            display: "inline-flex", alignItems: "center", gap: "0.5rem",
+            color: "#b3c0e8", textDecoration: "none", fontSize: "0.9rem",
+          }}>
+            💀 Перов
+          </Link>
           <RecalcFirstInSeason />
           <ReseedItemsButton />
           <ApplySchemaButton />

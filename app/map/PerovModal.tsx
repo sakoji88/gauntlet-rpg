@@ -87,15 +87,7 @@ export default function PerovModal({ trial }: { trial: PerovTrialData }) {
         />
 
         <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
-          <Skull
-            size={48}
-            color="#8ba0e3"
-            style={{
-              marginBottom: "1rem",
-              filter: "drop-shadow(0 0 12px rgba(139, 160, 227, 0.7))",
-              animation: "perovGhostPulse 2.5s ease-in-out infinite",
-            }}
-          />
+          <PerovPortrait />
           <div
             style={{
               fontSize: "0.75rem",
@@ -247,8 +239,71 @@ export default function PerovModal({ trial }: { trial: PerovTrialData }) {
             0%, 100% { box-shadow: 0 0 24px rgba(107, 126, 196, 0.3); }
             50% { box-shadow: 0 0 48px rgba(107, 126, 196, 0.7); }
           }
+          @keyframes perovFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+          }
         `}</style>
       </div>
+    </div>
+  );
+}
+
+// Портрет Перова. Если файл /public/images/quest-givers/perov.png существует —
+// рендерим круглый портрет с глоу. Если onError — фолбэк на иконку Skull.
+function PerovPortrait() {
+  const [hasImage, setHasImage] = useState(true);
+
+  if (!hasImage) {
+    return (
+      <Skull
+        size={64}
+        color="#8ba0e3"
+        style={{
+          marginBottom: "1rem",
+          filter: "drop-shadow(0 0 12px rgba(139, 160, 227, 0.7))",
+          animation: "perovGhostPulse 2.5s ease-in-out infinite",
+        }}
+      />
+    );
+  }
+
+  return (
+    <div
+      style={{
+        width: "120px",
+        height: "120px",
+        margin: "0 auto 1rem",
+        position: "relative",
+        animation: "perovFloat 4s ease-in-out infinite",
+      }}
+    >
+      <img
+        src="/images/quest-givers/perov.png"
+        alt="Дух Гомодрила Перова"
+        onError={() => setHasImage(false)}
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          borderRadius: "50%",
+          border: "2px solid #6b7ec4",
+          boxShadow: "0 0 32px rgba(139, 160, 227, 0.7), inset 0 0 16px rgba(139, 160, 227, 0.4)",
+          filter: "saturate(0.7) contrast(1.1)",
+        }}
+      />
+      {/* Призрачный ореол */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          inset: -6,
+          borderRadius: "50%",
+          border: "1px solid rgba(139, 160, 227, 0.4)",
+          pointerEvents: "none",
+          animation: "perovGhostPulse 2.5s ease-in-out infinite",
+        }}
+      />
     </div>
   );
 }
