@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ChevronLeft, Skull, Send, X, Check, RotateCcw, Loader2,
+  ChevronLeft, Skull, Send, X, Check, RotateCcw, Loader2, Edit3, Save,
 } from "lucide-react";
 
 interface TrialOpt {
@@ -246,6 +246,9 @@ export default function PerovAdminView({
                 onReroll={(trialId) =>
                   call({ action: "reroll_trial", questId: q.id, trialId })
                 }
+                onEdit={(patch) =>
+                  call({ action: "edit", questId: q.id, ...patch })
+                }
                 busy={busy}
               />
             ))}
@@ -322,6 +325,7 @@ function QuestRow({
   onCancel,
   onComplete,
   onReroll,
+  onEdit,
   busy,
 }: {
   quest: PerovQuest;
@@ -329,9 +333,44 @@ function QuestRow({
   onCancel: () => void;
   onComplete: () => void;
   onReroll: (trialId: string) => void;
+  onEdit: (patch: Record<string, unknown>) => void;
   busy: boolean;
 }) {
   const [rerollTo, setRerollTo] = useState<string>("");
+  const [editing, setEditing] = useState(false);
+
+  // Парсим текущие награды для формы
+  let initialRewards = { points: 0, exp: 0, itemId: "" as string };
+  try {
+    const parsed = JSON.parse(quest.rewards);
+    if (typeof parsed?.points === "number") initialRewards.points = parsed.points;
+    if (typeof parsed?.exp === "number") initialRewards.exp = parsed.exp;
+    if (typeof parsed?.itemId === "string") initialRewards.itemId = parsed.itemId;
+  } catch {}
+
+  const [editTitle, setEditTitle] = useState(quest.title);
+  const [editDesc, setEditDesc] = useState(quest.description);
+  const [editFlavor, setEditFlavor] = useState(quest.flavor);
+  const [editPoints, setEditPoints] = useState(initialRewards.points);
+  const [editExp, setEditExp] = useState(initialRewards.exp);
+  const [editItemId, setEditItemId] = useState(initialRewards.itemId);
+
+  function saveEdit() {
+    const patch: Record<string, unknown> = {};
+    if (editTitle.trim() !== quest.title) patch.title = editTitle.trim();
+    if (editDesc.trim() !== quest.description) patch.description = editDesc.trim();
+    if (editFlavor.trim() !== quest.flavor) patch.flavor = editFlavor.trim();
+    if (editPoints !== initialRewards.points) patch.rewardPoints = editPoints;
+    if (editExp !== initialRewards.exp) patch.rewardExp = editExp;
+    if (editItemId !== initialRewards.itemId) patch.rewardItemId = editItemId || null;
+    if (Object.keys(patch).length === 0) {
+      alert("Ничего не поменялось");
+      return;
+    }
+    onEdit(patch);
+    setEditing(false);
+  }
+
   const statusColor =
     quest.status === "ACTIVE" ? "var(--color-gold)" : "#8ba0e3";
   const isOffered = quest.status === "OFFERED";
@@ -361,47 +400,148 @@ function QuestRow({
         </div>
       </div>
 
-      <div style={{ marginTop: "0.4rem" }}>
-        <em style={{ color: "#b3c0e8" }}>«{quest.title}»</em>{" "}
-        <span style={{ fontSize: "0.78rem", color: "var(--color-text-dim)" }}>
-          ({quest.description})
-        </span>
-      </div>
+      {!editing && (
+        <>
+          <div style={{ marginTop: "0.4rem" }}>
+            <em style={{ color: "#b3c0e8" }}>«{quest.title}»</em>{" "}
+            <span style={{ fontSize: "0.78rem", color: "var(--color-text-dim)" }}>
+              ({quest.description})
+            </span>
+          </div>
+          <div
+            style={{
+              fontSize: "0.75rem",
+              color: "var(--color-text-dim)",
+              fontStyle: "italic",
+              marginTop: "0.25rem",
+              paddingLeft: "0.5rem",
+              borderLeft: "2px solid #4c5a8c",
+            }}
+          >
+            «{quest.flavor}»
+          </div>
+          <div style={{ fontSize: "0.75rem", color: "var(--color-gold)", marginTop: "0.35rem" }}>
+            Награда: +{initialRewards.points} поинтов, +{initialRewards.exp} EXP
+            {initialRewards.itemId ? ` · ${initialRewards.itemId}` : ""}
+          </div>
+        </>
+      )}
 
-      <div style={{ display: "flex", gap: "0.4rem", marginTop: "0.6rem", flexWrap: "wrap" }}>
-        <button onClick={onComplete} disabled={busy} style={btn("var(--color-gold)")}>
-          <Check size={13} /> Засчитать
-        </button>
-        <button onClick={onCancel} disabled={busy} style={btn("var(--color-blood-bright)")}>
-          <X size={13} /> Отменить
-        </button>
-        {isOffered && (
-          <>
-            <select
-              value={rerollTo}
-              onChange={(e) => setRerollTo(e.target.value)}
-              style={{ ...inp, maxWidth: "240px" }}
-            >
-              <option value="">— заменить на… —</option>
-              {trials
-                .filter((t) => t.id !== quest.templateId)
-                .map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.title}
-                  </option>
-                ))}
-            </select>
-            <button
-              onClick={() => rerollTo && onReroll(rerollTo)}
-              disabled={busy || !rerollTo}
-              style={btn("#8ba0e3")}
-            >
-              <RotateCcw size={13} /> Перевернуть карты
+      {editing && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.5rem" }}>
+          <FieldRow label="Название">
+            <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} style={inp} />
+          </FieldRow>
+          <FieldRow label="Описание (что делать)">
+            <textarea
+              value={editDesc}
+              onChange={(e) => setEditDesc(e.target.value)}
+              rows={2}
+              style={{ ...inp, resize: "vertical" }}
+            />
+          </FieldRow>
+          <FieldRow label="Реплика Перова">
+            <textarea
+              value={editFlavor}
+              onChange={(e) => setEditFlavor(e.target.value)}
+              rows={2}
+              style={{ ...inp, resize: "vertical" }}
+            />
+          </FieldRow>
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+            <FieldRow label="Поинты">
+              <input
+                type="number"
+                value={editPoints}
+                onChange={(e) => setEditPoints(Number(e.target.value))}
+                style={{ ...inp, width: "100px" }}
+              />
+            </FieldRow>
+            <FieldRow label="EXP">
+              <input
+                type="number"
+                value={editExp}
+                onChange={(e) => setEditExp(Number(e.target.value))}
+                style={{ ...inp, width: "100px" }}
+              />
+            </FieldRow>
+            <FieldRow label="Предмет (itemId, пусто = ничего)">
+              <input
+                value={editItemId}
+                onChange={(e) => setEditItemId(e.target.value)}
+                placeholder="напр. perov_vessel"
+                style={{ ...inp, width: "200px" }}
+              />
+            </FieldRow>
+          </div>
+          <div style={{ display: "flex", gap: "0.4rem" }}>
+            <button onClick={saveEdit} disabled={busy} style={btn("var(--color-gold)")}>
+              <Save size={13} /> Сохранить
             </button>
-          </>
-        )}
-      </div>
+            <button onClick={() => setEditing(false)} disabled={busy} style={btn("var(--color-text-dim)")}>
+              <X size={13} /> Отмена
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!editing && (
+        <div style={{ display: "flex", gap: "0.4rem", marginTop: "0.6rem", flexWrap: "wrap" }}>
+          <button onClick={onComplete} disabled={busy} style={btn("var(--color-gold)")}>
+            <Check size={13} /> Засчитать
+          </button>
+          <button onClick={() => setEditing(true)} disabled={busy} style={btn("#8ba0e3")}>
+            <Edit3 size={13} /> Редактировать
+          </button>
+          <button onClick={onCancel} disabled={busy} style={btn("var(--color-blood-bright)")}>
+            <X size={13} /> Отменить
+          </button>
+          {isOffered && (
+            <>
+              <select
+                value={rerollTo}
+                onChange={(e) => setRerollTo(e.target.value)}
+                style={{ ...inp, maxWidth: "240px" }}
+              >
+                <option value="">— заменить на шаблон… —</option>
+                {trials
+                  .filter((t) => t.id !== quest.templateId)
+                  .map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.title}
+                    </option>
+                  ))}
+              </select>
+              <button
+                onClick={() => rerollTo && onReroll(rerollTo)}
+                disabled={busy || !rerollTo}
+                style={btn("#8ba0e3")}
+              >
+                <RotateCcw size={13} /> Перевернуть карты
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </div>
+  );
+}
+
+function FieldRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
+      <span
+        style={{
+          fontSize: "0.7rem",
+          color: "var(--color-text-dim)",
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+        }}
+      >
+        {label}
+      </span>
+      {children}
+    </label>
   );
 }
 

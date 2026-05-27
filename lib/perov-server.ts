@@ -8,6 +8,7 @@ import {
   PEROV_TRIALS,
   pickPerovTrialForDay,
   shouldPerovTryToday,
+  destinedPerovDay,
 } from "./perov";
 import { getSeasonDay } from "./points-formula";
 import type { Quest } from "@prisma/client";
@@ -63,9 +64,18 @@ export async function getOrCreatePerovTrial(playerId: string): Promise<Quest | n
     },
   }));
 
-  const inGuaranteedWindow =
-    seasonDay >= GUARANTEED_SEASON_DAYS_FROM &&
-    seasonDay <= GUARANTEED_SEASON_DAYS_TO;
+  // У каждого игрока СВОЙ «судьбоносный день» в окне 5-18 —
+  // детерминированный по playerId + seasonId. Перов придёт именно в этот
+  // день (или позже, если игрок в этот день не зашёл на карту). У разных
+  // игроков выпадают разные дни → они НЕ появляются одновременно.
+  const myDestinedDay = destinedPerovDay(
+    playerId,
+    season.id,
+    GUARANTEED_SEASON_DAYS_FROM,
+    GUARANTEED_SEASON_DAYS_TO,
+  );
+  const inMyWindow =
+    seasonDay >= myDestinedDay && seasonDay <= GUARANTEED_SEASON_DAYS_TO;
 
   const dropsThisSeason = await prisma.game.count({
     where: {
@@ -75,7 +85,7 @@ export async function getOrCreatePerovTrial(playerId: string): Promise<Quest | n
     },
   });
 
-  const guaranteedTrigger = !everPerovThisSeason && inGuaranteedWindow;
+  const guaranteedTrigger = !everPerovThisSeason && inMyWindow;
   const dropTrigger = dropsThisSeason >= DROP_THRESHOLD;
 
   let shouldAppear = false;

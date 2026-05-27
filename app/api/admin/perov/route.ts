@@ -250,6 +250,66 @@ export async function POST(req: Request) {
     });
   }
 
+  // ===== EDIT =====
+  // Прямое редактирование текста/наград любого Perov-квеста (даже ACTIVE).
+  // Меняем только переданные поля. rewards JSON собирается из rewardPoints/rewardItemId
+  // если они переданы — иначе оставляем старые.
+  if (action === "edit") {
+    const questId = String(body.questId ?? "");
+    const quest = await prisma.quest.findUnique({ where: { id: questId } });
+    if (!quest || quest.npcRegion !== PEROV_NPC_REGION) {
+      return NextResponse.json({ error: "Perov-квест не найден" }, { status: 404 });
+    }
+    if (quest.status === "COMPLETED") {
+      return NextResponse.json({ error: "Завершённый квест не редактируем" }, { status: 400 });
+    }
+
+    const patch: Record<string, unknown> = {};
+    if (typeof body.title === "string" && body.title.trim()) {
+      patch.title = body.title.trim();
+    }
+    if (typeof body.description === "string" && body.description.trim()) {
+      patch.description = body.description.trim();
+    }
+    if (typeof body.flavor === "string") {
+      patch.flavor = body.flavor.trim();
+    }
+    // Rewards: разбираем старое, накладываем новое
+    if (
+      typeof body.rewardPoints === "number" ||
+      typeof body.rewardExp === "number" ||
+      "rewardItemId" in body
+    ) {
+      let rewards: Record<string, unknown> = {};
+      try {
+        rewards = JSON.parse(quest.rewards) ?? {};
+      } catch {}
+      if (typeof body.rewardPoints === "number") rewards.points = Math.max(0, Math.round(body.rewardPoints));
+      if (typeof body.rewardExp === "number") rewards.exp = Math.max(0, Math.round(body.rewardExp));
+      if ("rewardItemId" in body) {
+        const v = body.rewardItemId;
+        if (v === null || v === "") {
+          delete rewards.itemId;
+        } else if (typeof v === "string") {
+          rewards.itemId = v.trim();
+        }
+      }
+      patch.rewards = JSON.stringify(rewards);
+    }
+
+    if (Object.keys(patch).length === 0) {
+      return NextResponse.json({ error: "Нечего обновлять — все поля пустые" }, { status: 400 });
+    }
+    const updated = await prisma.quest.update({
+      where: { id: questId },
+      data: patch,
+    });
+    return NextResponse.json({
+      success: true,
+      message: `Квест «${updated.title}» обновлён.`,
+    });
+  }
+
   // ===== REROLL TRIAL =====
   // Меняет templateId/title/description/flavor/params/rewards текущего
   // OFFERED-квеста на другой trial — без потери acceptedAt/offeredAt.

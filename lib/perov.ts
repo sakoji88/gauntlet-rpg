@@ -88,3 +88,22 @@ export function shouldPerovTryToday(playerId: string, percent: number, now: Date
   }
   return Math.abs(hash % 100) < percent;
 }
+
+// «Судьбоносный день» Перова для игрока в этом сезоне.
+// Детерминирован по playerId + seasonId, всегда в окне [from, to].
+// Перов гарантированно явится В ЭТОТ день (или позже, если игрок не открыл карту).
+// У разных игроков выпадают разные дни — не все получают Перова в один и тот же день.
+export function destinedPerovDay(
+  playerId: string,
+  seasonId: string,
+  from: number,
+  to: number,
+): number {
+  const seed = `perov-destined:${seasonId}:${playerId}`;
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0;
+  }
+  const range = Math.max(1, to - from + 1);
+  return from + (Math.abs(hash) % range);
+}
