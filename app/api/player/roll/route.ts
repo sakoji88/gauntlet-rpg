@@ -157,6 +157,10 @@ export async function POST(req: Request) {
       activeGameId: game.id,
       energy: { decrement: rollCost },
       ...(buffsChanged ? { activeBuffs: serializeActiveBuffs(updatedBuffs) } : {}),
+      // Лороман: «Древнее Знание» сгорает на ролле → CD активки стартует
+      // именно от этого момента (а не от активации). Так длинные перерывы
+      // между роллами не делают CD бесплатным.
+      ...(ancientUsed ? { lastClassActionAt: new Date() } : {}),
     },
   });
 

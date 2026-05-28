@@ -291,18 +291,28 @@ export async function POST(req: Request) {
     // Сжигаем разовые баффы — Сердце Тьмы только при сработавшем max diff,
     // классовые баффы (fury/self_flag/hype) — всегда после complete,
     // ловушку Шаурмы — после complete (она уже снижала поинты).
+    //
+    // ВАЖНО: при сжигании классового буфа (fury/self_flag/hype) мы сбрасываем
+    // lastClassActionAt → CD активки стартует именно отсюда, а не от момента
+    // активации. Раньше Berserker нажимал → играл 28ч → CD давно прошёл →
+    // снова мог использовать на следующей же игре. Теперь после реального
+    // применения нужно подождать 24ч.
     let updatedBuffs = buffs;
+    let classActionBurned = false;
     if (hasBuff(buffs, "triple_points") && isMaxDifficulty) {
       updatedBuffs = removeBuff(updatedBuffs, "triple_points");
     }
     if (hasBuff(buffs, "class_fury")) {
       updatedBuffs = removeBuff(updatedBuffs, "class_fury");
+      classActionBurned = true;
     }
     if (hasBuff(buffs, "class_self_flag")) {
       updatedBuffs = removeBuff(updatedBuffs, "class_self_flag");
+      classActionBurned = true;
     }
     if (hasBuff(buffs, "class_hype")) {
       updatedBuffs = removeBuff(updatedBuffs, "class_hype");
+      classActionBurned = true;
     }
     if (hasBuff(buffs, "trap_points")) {
       updatedBuffs = removeBuff(updatedBuffs, "trap_points");
@@ -389,6 +399,9 @@ export async function POST(req: Request) {
         exp: { increment: expGain },
         gold: { increment: goldGain },
         ...(buffsJson !== null ? { activeBuffs: buffsJson } : {}),
+        // Сброс CD классовой активки — если буф был сожжён на этой игре.
+        // Так CD стартует от РЕАЛЬНОГО применения, а не от активации.
+        ...(classActionBurned ? { lastClassActionAt: new Date() } : {}),
       },
     });
 
@@ -474,7 +487,19 @@ export async function POST(req: Request) {
       dropBuffsList = removeBuff(dropBuffsList, "drop_to_khutor");
       regionOverride = "khutor";
     }
-    const dropBuffsChanged = dodgePrison || goToKhutor;
+
+    // Классовые активки тоже сгорают при дропе — иначе игрок мог бы
+    // «сохранять» Ярость / Самобичевание / Хайп через дроп и применять
+    // только на удобной игре. Если буф сгорел — стартует CD активки.
+    let classBurnedOnDrop = false;
+    for (const key of ["class_fury", "class_self_flag", "class_hype"] as const) {
+      if (hasBuff(dropBuffsList, key)) {
+        dropBuffsList = removeBuff(dropBuffsList, key);
+        classBurnedOnDrop = true;
+      }
+    }
+
+    const dropBuffsChanged = dodgePrison || goToKhutor || classBurnedOnDrop;
     const goesToPrison = !dodgePrison && !goToKhutor;
 
     await prisma.player.update({
@@ -490,6 +515,7 @@ export async function POST(req: Request) {
         ...(dropBuffsChanged
           ? { activeBuffs: serializeActiveBuffs(dropBuffsList) }
           : {}),
+        ...(classBurnedOnDrop ? { lastClassActionAt: new Date() } : {}),
       },
     });
 
