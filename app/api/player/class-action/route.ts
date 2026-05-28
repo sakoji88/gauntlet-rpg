@@ -83,7 +83,7 @@ export async function POST(req: Request) {
     });
     return NextResponse.json({
       success: true,
-      message: "ХУУУУХ! Поставь галку «Макс. сложность» на следующей завершённой игре — будет ×2.",
+      message: "ХУУУУХ! Поставь галку «Тяжёлый прогон» на следующей завершённой игре — будет ×1.3.",
     });
   }
 

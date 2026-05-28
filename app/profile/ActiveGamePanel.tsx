@@ -307,13 +307,16 @@ export default function ActiveGamePanel({ game, activeHype }: ActiveGameProps) {
                 </span>
               </label>
 
-              {/* Чекбокс — макс сложность */}
+              {/* Чекбокс — тяжёлый прогон.
+                  Старое название «макс. сложность» путало игроков:
+                  Souls-like, Sekiro, Bloodborne, Hades, Risk of Rain и т.п.
+                  не имеют выбора сложности, но реально хардкорные. */}
               <CheckBox
                 checked={isMaxDifficulty}
                 onChange={setIsMaxDifficulty}
                 icon={<Sword size={14} />}
-                label="Пройдено на максимальной сложности"
-                hint="Включает бонусы Берсерка и Сердца Тьмы"
+                label="Тяжёлый прогон"
+                hint="Прошёл на самом сложном доступном режиме ИЛИ это Souls-like / Hardcore без выбора сложности (Dark Souls, Sekiro, Bloodborne, Elden Ring, Sifu, permadeath rogue-like и т.п.). Включает бонусы Берсерка, Ярость Бати и Сердце Тьмы."
               />
 
               {/* Чекбокс — Бард выполнил хайп */}

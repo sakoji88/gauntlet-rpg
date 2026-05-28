@@ -80,7 +80,7 @@ const SUFFERER_PENALTY_GT85 = 0.7;
 
 const PUNISH_TSHIRT_MULT = 1.3;     // points_mult_next
 const PHASE_RACE_MULT = 1.3;        // 15+ день сезона
-const FURY_MULT = 1.5;              // Ярость Бати на max diff
+const FURY_MULT = 1.3;              // Ярость Бати на «тяжёлом прогоне» (раньше 1.5 — слишком жирно вкупе с Берсерк-классом 1.3)
 const HEART_OF_DARK_MULT = 2;       // Сердце Тьмы на max diff (раньше ×3)
 const SELF_FLAG_FLAT = 5;           // Самобичевание — теперь +5 плоско вместо ×2
 const HYPE_SUCCESS = 5;

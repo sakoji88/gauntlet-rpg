@@ -123,7 +123,7 @@ export const ITEMS: ItemDef[] = [
   {
     id: "heart_of_dark",
     name: "Сердце Тьмы",
-    description: "Следующая игра на макс. сложности даст x3 поинтов. Раз в сезон.",
+    description: "Следующий «Тяжёлый прогон» (макс. сложность ИЛИ Souls-like) даст ×2 поинтов и поднимает cap до 75. Раз в сезон.",
     category: "ARTIFACT", rarity: "LEGENDARY",
     iconKey: "heart_dark", effectKey: "triple_points",
     charges: 1, rollWeight: 1,
